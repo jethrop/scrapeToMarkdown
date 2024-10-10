@@ -5,7 +5,7 @@ This script is designed to scrape a website and convert its content to Markdown 
 It uses Scrapy for web crawling and html2text for HTML to Markdown conversion.
 
 The script performs the following main tasks:
-1. Crawls a specified website, focusing on the /docs directory
+1. Crawls a specified website, starting from the provided URL
 2. Converts HTML content to Markdown
 3. Saves each page as a separate Markdown file, maintaining the original site structure
 4. Creates a table of contents for the scraped content
@@ -63,7 +63,7 @@ class WebsiteSpider(scrapy.Spider):
         Parse the response from each crawled page.
 
         This method handles the conversion of HTML to Markdown, saves the content,
-        and follows links within the allowed domain and /docs directory.
+        and follows links within the allowed domain and starting URL.
 
         Args:
             response (scrapy.http.Response): The response object from the crawled page
@@ -73,7 +73,7 @@ class WebsiteSpider(scrapy.Spider):
             time.sleep(self.request_delay - (current_time - self.last_request_time))
         self.last_request_time = time.time()
 
-        # Only process pages within the /docs directory
+        # Only process pages within the starting URL
         if not response.url.startswith(self.start_urls[0]):
             return
 
@@ -96,8 +96,9 @@ class WebsiteSpider(scrapy.Spider):
             if url_path.endswith('/'):
                 url_path += 'index'
             
-            # Remove the '/docs' prefix from the path
-            relative_path = url_path.replace('/docs/', '', 1)
+            # Remove the starting URL path from the file path
+            start_url_path = urlparse(self.start_urls[0]).path
+            relative_path = url_path[len(start_url_path):].lstrip('/')
             
             # Construct the full file path
             file_path = os.path.join(self.output_dir, relative_path + '.md')
@@ -115,7 +116,7 @@ class WebsiteSpider(scrapy.Spider):
             self.sitemap.append((title, response.url, file_path))
             logging.info(f"Scraped: {response.url}")
 
-            # Follow links within the allowed domain and /docs directory
+            # Follow links within the allowed domain and starting URL
             for href in response.css('a::attr(href)').getall():
                 url = urljoin(response.url, href)
                 if url.startswith(self.start_urls[0]):
