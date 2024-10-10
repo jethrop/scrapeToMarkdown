@@ -9,6 +9,7 @@ The script performs the following main tasks:
 2. Converts HTML content to Markdown
 3. Saves each page as a separate Markdown file, maintaining the original site structure
 4. Creates a table of contents for the scraped content
+5. Adds the output directory to .gitignore in the Git root directory to prevent version control of scraped content
 
 Usage:
     python web_scraper.py <url> <output_dir>
@@ -29,6 +30,60 @@ import argparse
 from urllib.parse import urlparse, urljoin
 import logging
 import time
+import subprocess
+
+def find_git_root(path):
+    """
+    Find the root directory of the Git repository.
+    
+    Args:
+        path (str): The starting path to search from
+
+    Returns:
+        str: The path to the Git root directory, or None if not found
+    """
+    try:
+        git_root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], 
+                                           cwd=path, 
+                                           stderr=subprocess.STDOUT).decode().strip()
+        return git_root
+    except subprocess.CalledProcessError:
+        return None
+
+def update_gitignore(output_dir):
+    """
+    Update .gitignore file in the Git root directory to include the output directory.
+    
+    Args:
+        output_dir (str): The directory where scraped content is saved
+    """
+    current_dir = os.path.abspath(os.getcwd())
+    git_root = find_git_root(current_dir)
+
+    if git_root is None:
+        print("Not a Git repository. Skipping .gitignore update.")
+        return
+
+    gitignore_path = os.path.join(git_root, '.gitignore')
+    relative_output_dir = os.path.relpath(output_dir, git_root)
+    gitignore_entry = f"{relative_output_dir}/"
+
+    # Check if .gitignore exists, if not create it
+    if not os.path.exists(gitignore_path):
+        open(gitignore_path, 'a').close()
+
+    # Read existing .gitignore content
+    with open(gitignore_path, 'r') as file:
+        content = file.read()
+
+    # Check if the output directory is already in .gitignore
+    if gitignore_entry not in content:
+        # Append the output directory to .gitignore
+        with open(gitignore_path, 'a') as file:
+            file.write(f"\n# Scraped content\n{gitignore_entry}\n")
+        print(f"Added {gitignore_entry} to .gitignore in {git_root}")
+    else:
+        print(f"{gitignore_entry} already in .gitignore")
 
 class WebsiteSpider(scrapy.Spider):
     name = 'website_spider'
@@ -129,6 +184,9 @@ def main():
     # Ensure output directory exists
     output_dir = os.path.abspath(args.output_dir)
     os.makedirs(output_dir, exist_ok=True)
+
+    # Update .gitignore
+    update_gitignore(output_dir)
 
     process = CrawlerProcess({
         'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
