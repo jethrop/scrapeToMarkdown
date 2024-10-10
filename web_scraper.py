@@ -27,6 +27,10 @@ class WebsiteSpider(scrapy.Spider):
             time.sleep(self.request_delay - (current_time - self.last_request_time))
         self.last_request_time = time.time()
 
+        # Only process pages within the /docs directory
+        if not response.url.startswith(self.start_urls[0]):
+            return
+
         try:
             # Extract main content (adjust selectors based on the website structure)
             main_content = response.css('main').get()
@@ -38,11 +42,19 @@ class WebsiteSpider(scrapy.Spider):
             # Convert HTML to Markdown
             markdown_content = self.h2t.handle(main_content)
 
-            # Create file path
+            # Add original page link as documentation
+            markdown_content = f"Original page: {response.url}\n\n{markdown_content}"
+
+            # Create file path that mirrors the source site directory structure
             url_path = urlparse(response.url).path
             if url_path.endswith('/'):
                 url_path += 'index'
-            file_path = os.path.join(self.output_dir, url_path.lstrip('/') + '.md')
+            
+            # Remove the '/docs' prefix from the path
+            relative_path = url_path.replace('/docs/', '', 1)
+            
+            # Construct the full file path
+            file_path = os.path.join(self.output_dir, relative_path + '.md')
 
             # Ensure directory exists
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -51,29 +63,53 @@ class WebsiteSpider(scrapy.Spider):
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(markdown_content)
 
-            self.sitemap.append((response.url, file_path))
+            # Extract title from the page
+            title = response.css('title::text').get() or os.path.basename(file_path)
+
+            self.sitemap.append((title, response.url, file_path))
             logging.info(f"Scraped: {response.url}")
 
-            # Follow links within the allowed domain
+            # Follow links within the allowed domain and /docs directory
             for href in response.css('a::attr(href)').getall():
                 url = urljoin(response.url, href)
-                if urlparse(url).netloc in self.allowed_domains:
+                if url.startswith(self.start_urls[0]):
                     yield scrapy.Request(url, callback=self.parse)
 
         except Exception as e:
             logging.error(f"Error scraping {response.url}: {str(e)}")
 
     def closed(self, reason):
-        self.create_sitemap()
+        self.create_table_of_contents()
 
-    def create_sitemap(self):
-        sitemap_content = "# Site Map\n\n"
-        for url, file_path in self.sitemap:
+    def create_table_of_contents(self):
+        toc_content = "# Table of Contents\n\n"
+
+        # Sort the sitemap by file path to group related pages together
+        sorted_sitemap = sorted(self.sitemap, key=lambda x: x[2])
+
+        current_path = []
+        for title, url, file_path in sorted_sitemap:
             relative_path = os.path.relpath(file_path, self.output_dir)
-            sitemap_content += f"- [{url}]({relative_path})\n"
+            parts = relative_path.split(os.sep)
 
-        with open(os.path.join(self.output_dir, 'sitemap.md'), 'w', encoding='utf-8') as f:
-            f.write(sitemap_content)
+            # Determine the depth of the current item
+            depth = len(parts) - 1
+
+            # Update the current path
+            current_path = current_path[:depth]
+            while len(current_path) < depth:
+                current_path.append('')
+
+            current_path.append(parts[-1])
+
+            # Create the indentation
+            indent = '  ' * depth
+
+            # Add the item to the table of contents
+            toc_content += f"{indent}- [{title}]({relative_path})\n"
+
+        with open(os.path.join(self.output_dir, 'table_of_contents.md'), 'w', encoding='utf-8') as f:
+            f.write(toc_content)
 
 def main():
     parser = argparse.ArgumentParser(description='Scrape a website and convert to Markdown.')
