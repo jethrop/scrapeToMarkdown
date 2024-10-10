@@ -1,3 +1,26 @@
+"""
+Web Scraper Script
+
+This script is designed to scrape a website and convert its content to Markdown format.
+It uses Scrapy for web crawling and html2text for HTML to Markdown conversion.
+
+The script performs the following main tasks:
+1. Crawls a specified website, focusing on the /docs directory
+2. Converts HTML content to Markdown
+3. Saves each page as a separate Markdown file, maintaining the original site structure
+4. Creates a table of contents for the scraped content
+
+Usage:
+    python web_scraper.py <url> <output_dir>
+
+    <url>: The URL of the website to scrape
+    <output_dir>: The directory where the Markdown files will be saved
+
+Dependencies:
+    - scrapy
+    - html2text
+"""
+
 import scrapy
 from scrapy.crawler import CrawlerProcess
 import html2text
@@ -8,9 +31,23 @@ import logging
 import time
 
 class WebsiteSpider(scrapy.Spider):
+    """
+    Spider class for crawling a website and converting its content to Markdown.
+
+    This spider crawls a specified website, converts HTML content to Markdown,
+    and saves each page as a separate file while maintaining the original site structure.
+    """
+
     name = 'website_spider'
 
     def __init__(self, start_url=None, output_dir=None, *args, **kwargs):
+        """
+        Initialize the WebsiteSpider.
+
+        Args:
+            start_url (str): The URL to start crawling from
+            output_dir (str): The directory to save the Markdown files
+        """
         super(WebsiteSpider, self).__init__(*args, **kwargs)
         self.start_urls = [start_url]
         self.allowed_domains = [urlparse(start_url).netloc]
@@ -22,6 +59,15 @@ class WebsiteSpider(scrapy.Spider):
         self.request_delay = 1  # Delay between requests in seconds
 
     def parse(self, response):
+        """
+        Parse the response from each crawled page.
+
+        This method handles the conversion of HTML to Markdown, saves the content,
+        and follows links within the allowed domain and /docs directory.
+
+        Args:
+            response (scrapy.http.Response): The response object from the crawled page
+        """
         current_time = time.time()
         if current_time - self.last_request_time < self.request_delay:
             time.sleep(self.request_delay - (current_time - self.last_request_time))
@@ -79,9 +125,23 @@ class WebsiteSpider(scrapy.Spider):
             logging.error(f"Error scraping {response.url}: {str(e)}")
 
     def closed(self, reason):
+        """
+        Method called when the spider is closed.
+
+        This method is responsible for creating the table of contents after all pages have been scraped.
+
+        Args:
+            reason (str): The reason for closing the spider
+        """
         self.create_table_of_contents()
 
     def create_table_of_contents(self):
+        """
+        Create a table of contents for the scraped content.
+
+        This method generates a Markdown file containing a hierarchical table of contents
+        based on the scraped pages and their file structure.
+        """
         toc_content = "# Table of Contents\n\n"
 
         # Sort the sitemap by file path to group related pages together
@@ -112,6 +172,12 @@ class WebsiteSpider(scrapy.Spider):
             f.write(toc_content)
 
 def main():
+    """
+    Main function to set up and run the web scraper.
+
+    This function parses command-line arguments, sets up logging,
+    and initializes the Scrapy crawler process.
+    """
     parser = argparse.ArgumentParser(description='Scrape a website and convert to Markdown.')
     parser.add_argument('url', help='The URL to scrape')
     parser.add_argument('output_dir', help='The directory to save the Markdown files')
