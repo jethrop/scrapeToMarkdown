@@ -1,0 +1,194 @@
+Original page: https://solito.dev/recipes/redirects
+
+# Redirects
+
+Imagine you want users to enter the URL `/@drake`, and for it to redirect to
+the page at `/artists/[slug].tsx`.
+
+Next.js lets you handle this easily with redirects and rewrites inside of
+`next.config.js`
+
+    
+    
+    js
+    
+    // next.config.js
+    
+     
+    
+    module.exports = {
+    
+      async rewrites() {
+    
+        return [
+    
+          {
+    
+            source: '/@:slug',
+    
+            destination: '/artists/:slug',
+    
+          },
+    
+        ]
+    
+      },
+    
+    }
+    
+    Copy
+    
+    
+    js
+    
+    // next.config.js
+    
+     
+    
+    module.exports = {
+    
+      async rewrites() {
+    
+        return [
+    
+          {
+    
+            source: '/@:slug',
+    
+            destination: '/artists/:slug',
+    
+          },
+    
+        ]
+    
+      },
+    
+    }
+    
+    Copy
+
+The issue is, this won't work out of the box with React Navigation.
+
+In order to achieve the same, we'll need to edit the [React Navigation linking
+config](https://reactnavigation.org/docs/configuring-links).
+
+    
+    
+    tsx
+    
+    import * as Linking from 'expo-linking'
+    
+    import { getStateFromPath, LinkingOptions } from '@react-navigation/native'
+    
+     
+    
+    const withRewrites = (unparsedPath: string): string => {
+    
+      if (unparsedPath.startsWith('/@')) {
+    
+        const slug = unparsedPath.replace('/@', '').split('?')[0].split('/')[0]
+    
+        const rest = unparsedPath.replace(`/@${slug}`, '')
+    
+     
+    
+        return `/artists/${slug}${rest}`
+    
+      }
+    
+     
+    
+      // you can put other redirects here
+    
+     
+    
+      return unparsedPath
+    
+    }
+    
+     
+    
+    const linking: LinkingOptions<ReactNavigation.RootParamList> = {
+    
+      // ...your linking config
+    
+      prefixes: [Linking.createURL('/'), 'https://fernandorojo.co'],
+    
+      getStateFromPath(path, config) {
+    
+        const finalPath = withRewrites(path)
+    
+     
+    
+        return getStateFromPath(finalPath, config)
+    
+      },
+    
+    }
+    
+    Copy
+    
+    
+    tsx
+    
+    import * as Linking from 'expo-linking'
+    
+    import { getStateFromPath, LinkingOptions } from '@react-navigation/native'
+    
+     
+    
+    const withRewrites = (unparsedPath: string): string => {
+    
+      if (unparsedPath.startsWith('/@')) {
+    
+        const slug = unparsedPath.replace('/@', '').split('?')[0].split('/')[0]
+    
+        const rest = unparsedPath.replace(`/@${slug}`, '')
+    
+     
+    
+        return `/artists/${slug}${rest}`
+    
+      }
+    
+     
+    
+      // you can put other redirects here
+    
+     
+    
+      return unparsedPath
+    
+    }
+    
+     
+    
+    const linking: LinkingOptions<ReactNavigation.RootParamList> = {
+    
+      // ...your linking config
+    
+      prefixes: [Linking.createURL('/'), 'https://fernandorojo.co'],
+    
+      getStateFromPath(path, config) {
+    
+        const finalPath = withRewrites(path)
+    
+     
+    
+        return getStateFromPath(finalPath, config)
+    
+      },
+    
+    }
+    
+    Copy
+
+[Edit this
+page](https://github.com/nandorojo/solito/tree/master/docs/docs/recipes/redirects.mdx)
+
+Last updated on **3/11/2024** by **Fernando Rojo**
+
+[ PreviousAuthentication](/guides/auth)
+
+[NextTree Shaking](/recipes/tree-shaking)
+

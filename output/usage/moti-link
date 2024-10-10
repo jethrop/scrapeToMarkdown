@@ -1,0 +1,174 @@
+Original page: https://solito.dev/usage/moti-link
+
+On this page
+
+# MotiLink
+
+    
+    
+    ts
+    
+    import { MotiLink } from 'solito/moti'
+    
+    Copy
+    
+    
+    ts
+    
+    import { MotiLink } from 'solito/moti'
+    
+    Copy
+
+[`moti`](https://moti.fyi) is a popular animation library for React Native,
+powered by Reanimated. It works on iOS, Android and Web.
+
+Solito provides a first-class Moti integration with the `MotiLink` component.
+It works just like the regular `Link`, plus all the great Moti animation
+features.
+
+Under the hood, `MotiLink` uses
+[`MotiPressable`](https://moti.fyi/interactions/overview).
+
+The link is accessible, meaning it shows the URL in the bottom corner of
+Chrome, and it supports `Command + Click` to open in a new tab.
+
+## Usage​
+
+You can animate based on `hovered` and `pressed` states, without triggering
+any re-renders:
+
+    
+    
+    tsx
+    
+    const ButtonLink = ({ children, href, as }) => (
+    
+      <MotiLink
+    
+        href={href}
+    
+        as={as}
+    
+        animate={({ hovered, pressed }) => {
+    
+          'worklet'
+    
+          return {
+    
+            scale: pressed ? 0.9 : hovered ? 1.1 : 1,
+    
+          }
+    
+        }}
+    
+      >
+    
+        {children}
+    
+      </MotiLink>
+    
+    )
+    
+    Copy
+    
+    
+    tsx
+    
+    const ButtonLink = ({ children, href, as }) => (
+    
+      <MotiLink
+    
+        href={href}
+    
+        as={as}
+    
+        animate={({ hovered, pressed }) => {
+    
+          'worklet'
+    
+          return {
+    
+            scale: pressed ? 0.9 : hovered ? 1.1 : 1,
+    
+          }
+    
+        }}
+    
+      >
+    
+        {children}
+    
+      </MotiLink>
+    
+    )
+    
+    Copy
+
+Or, you could do a simple fade-in animation:
+
+    
+    
+    tsx
+    
+    <MotiLink href="/users/fernando" from={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    
+      {children}
+    
+    </MotiLink>
+    
+    Copy
+    
+    
+    tsx
+    
+    <MotiLink href="/users/fernando" from={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    
+      {children}
+    
+    </MotiLink>
+    
+    Copy
+
+Whatever a `MotiView`/`MotiPressable` component supports, you can do with
+`MotiLink`.
+
+## Props​
+
+Firstly, this component supports the following props from [Next.js' `<Link />`
+component](https://nextjs.org/docs/api-reference/next/link):
+
+  * `href` (required)
+  * `as`
+  * `shallow`
+
+This component also accepts all props of `MotiPressable`:
+
+  * [`MotiPressable` props](https://moti.fyi/interactions/pressable#props)
+
+## Prerequisites​
+
+To use `MotiLink`, you first need to install Moti. Please refer to the [Moti
+installation steps](https://moti.fyi/installation).
+
+##### info
+
+You must install `moti` version `0.0.18` or higher.
+
+You can also reference/clone the [Solito starter
+app](https://github.com/nandorojo/solito/tree/master/example-monorepos/blank)
+which has Moti and Solito configured for you.
+
+[Edit this
+page](https://github.com/nandorojo/solito/tree/master/docs/docs/usage/moti-
+link.mdx)
+
+Last updated on **3/11/2024** by **Fernando Rojo**
+
+[ Previous<TextLink />](/usage/text-link)
+
+[Next<SolitoImage />](/usage/image)
+
+  * Usage
+  * Props
+  * Prerequisites
+

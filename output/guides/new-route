@@ -1,0 +1,808 @@
+Original page: https://solito.dev/guides/new-route
+
+On this page
+
+# Create a route
+
+Creating a screen with Solito is simple. There are 4 steps:
+
+  1. Create a screen component
+  2. `Web` Export the component from a Next.js page
+  3. `Native` Render the component in your React Navigation navigator of choice
+  4. `Native` Add the screen to your React Navigation `linking` config
+
+##### What is React Navigation?
+
+React Navigation handles the navigation on the iOS and Android apps. Its API
+is similar to React Router.
+
+## Starter​
+
+To see a full example, I recommend referencing the solito [starter](/starter).
+You can see the full [code
+here](https://github.com/nandorojo/solito/tree/master/example-
+monorepos/blank).
+
+This guide will assume you're editing the starter app.
+
+## Video​
+
+For a high-level overview of creating a screen for React Native and Next.js,
+you can reference the navigation section of Fernando Rojo's Next.js talk:
+
+## Guide​
+
+### 1\. Create a screen​
+
+Create a file at `packages/app/features/settings/screen.tsx`:
+
+    
+    
+    tsx
+    
+    import { View, StyleSheet, Text } from 'react-native'
+    
+     
+    
+    export function SettingsScreen() {
+    
+      return (
+    
+        <View style={styles.container}>
+    
+          <Text style={styles.text}>Settings</Text>
+    
+        </View>
+    
+      )
+    
+    }
+    
+     
+    
+    const styles = StyleSheet.create({
+    
+      container: {
+    
+        flex: 1,
+    
+        alignItems: 'center',
+    
+        justifyContent: 'center',
+    
+        backgroundColor: '#111',
+    
+      },
+    
+      text: {
+    
+        color: '#fff',
+    
+      },
+    
+    })
+    
+    Copy
+    
+    
+    tsx
+    
+    import { View, StyleSheet, Text } from 'react-native'
+    
+     
+    
+    export function SettingsScreen() {
+    
+      return (
+    
+        <View style={styles.container}>
+    
+          <Text style={styles.text}>Settings</Text>
+    
+        </View>
+    
+      )
+    
+    }
+    
+     
+    
+    const styles = StyleSheet.create({
+    
+      container: {
+    
+        flex: 1,
+    
+        alignItems: 'center',
+    
+        justifyContent: 'center',
+    
+        backgroundColor: '#111',
+    
+      },
+    
+      text: {
+    
+        color: '#fff',
+    
+      },
+    
+    })
+    
+    Copy
+
+Here we have a basic `SettingsScreen` component. Since it's inside of
+`packages/app`, both the native app and website can use it.
+
+This is a common pattern for Solito; created shared UI inside of `packages/`,
+and then render them in their respective apps.
+
+### 2\. Next.js page​
+
+In `apps/next/pages/settings.tsx`, export the screen `as default`:
+
+    
+    
+    tsx
+    
+    export { SettingsScreen as default } from 'app/features/settings/screen'
+    
+    Copy
+    
+    
+    tsx
+    
+    export { SettingsScreen as default } from 'app/features/settings/screen'
+    
+    Copy
+
+Start the web app and open `localhost:3000/settings` to see your settings
+screen!
+
+### 3\. React Navigation​
+
+Now that the `SettingsScreen` works on the website, let's add it to the native
+app.
+
+In your solito starter, open `packages/app/navigation/native/index.tsx`.
+
+It should look like this
+
+    
+    
+    tsx
+    
+    import { createNativeStackNavigator } from '@react-navigation/native-stack'
+    
+     
+    
+    import { HomeScreen } from '../../features/home/screen'
+    
+    import { UserDetailScreen } from '../../features/user/detail-screen'
+    
+     
+    
+    const Stack = createNativeStackNavigator<{
+    
+      home: undefined
+    
+      'user-detail': {
+    
+        id: string
+    
+      }
+    
+    }>()
+    
+     
+    
+    export function NativeNavigation() {
+    
+      return (
+    
+        <Stack.Navigator>
+    
+          <Stack.Screen
+    
+            name="home"
+    
+            component={HomeScreen}
+    
+            options={{
+    
+              title: 'Home',
+    
+            }}
+    
+          />
+    
+          <Stack.Screen
+    
+            name="user-detail"
+    
+            component={UserDetailScreen}
+    
+            options={{
+    
+              title: 'User',
+    
+            }}
+    
+          />
+    
+        </Stack.Navigator>
+    
+      )
+    
+    }
+    
+    Copy
+    
+    
+    tsx
+    
+    import { createNativeStackNavigator } from '@react-navigation/native-stack'
+    
+     
+    
+    import { HomeScreen } from '../../features/home/screen'
+    
+    import { UserDetailScreen } from '../../features/user/detail-screen'
+    
+     
+    
+    const Stack = createNativeStackNavigator<{
+    
+      home: undefined
+    
+      'user-detail': {
+    
+        id: string
+    
+      }
+    
+    }>()
+    
+     
+    
+    export function NativeNavigation() {
+    
+      return (
+    
+        <Stack.Navigator>
+    
+          <Stack.Screen
+    
+            name="home"
+    
+            component={HomeScreen}
+    
+            options={{
+    
+              title: 'Home',
+    
+            }}
+    
+          />
+    
+          <Stack.Screen
+    
+            name="user-detail"
+    
+            component={UserDetailScreen}
+    
+            options={{
+    
+              title: 'User',
+    
+            }}
+    
+          />
+    
+        </Stack.Navigator>
+    
+      )
+    
+    }
+    
+    Copy
+
+#### Render the screen​
+
+    
+    
+    tsx
+    
+    import { createNativeStackNavigator } from '@react-navigation/native-stack'
+    
+     
+    
+    import { HomeScreen } from '../../features/home/screen'
+    
+    import { UserDetailScreen } from '../../features/user/detail-screen'
+    
+    import { SettingsScreen } from '../../features/settings/screen'
+    
+     
+    
+    const Stack = createNativeStackNavigator<{
+    
+      home: undefined
+    
+      'user-detail': {
+    
+        id: string
+    
+      }
+    
+      settings: undefined // this screen has no params
+    
+    }>()
+    
+     
+    
+    export function NativeNavigation() {
+    
+      return (
+    
+        <Stack.Navigator>
+    
+          <Stack.Screen
+    
+            name="home"
+    
+            component={HomeScreen}
+    
+            options={{
+    
+              title: 'Home',
+    
+            }}
+    
+          />
+    
+          <Stack.Screen
+    
+            name="settings"
+    
+            component={SettingsScreen}
+    
+            options={{
+    
+              title: 'Settings',
+    
+            }}
+    
+          />
+    
+          <Stack.Screen
+    
+            name="user-detail"
+    
+            component={UserDetailScreen}
+    
+            options={{
+    
+              title: 'User',
+    
+            }}
+    
+          />
+    
+        </Stack.Navigator>
+    
+      )
+    
+    }
+    
+    Copy
+    
+    
+    tsx
+    
+    import { createNativeStackNavigator } from '@react-navigation/native-stack'
+    
+     
+    
+    import { HomeScreen } from '../../features/home/screen'
+    
+    import { UserDetailScreen } from '../../features/user/detail-screen'
+    
+    import { SettingsScreen } from '../../features/settings/screen'
+    
+     
+    
+    const Stack = createNativeStackNavigator<{
+    
+      home: undefined
+    
+      'user-detail': {
+    
+        id: string
+    
+      }
+    
+      settings: undefined // this screen has no params
+    
+    }>()
+    
+     
+    
+    export function NativeNavigation() {
+    
+      return (
+    
+        <Stack.Navigator>
+    
+          <Stack.Screen
+    
+            name="home"
+    
+            component={HomeScreen}
+    
+            options={{
+    
+              title: 'Home',
+    
+            }}
+    
+          />
+    
+          <Stack.Screen
+    
+            name="settings"
+    
+            component={SettingsScreen}
+    
+            options={{
+    
+              title: 'Settings',
+    
+            }}
+    
+          />
+    
+          <Stack.Screen
+    
+            name="user-detail"
+    
+            component={UserDetailScreen}
+    
+            options={{
+    
+              title: 'User',
+    
+            }}
+    
+          />
+    
+        </Stack.Navigator>
+    
+      )
+    
+    }
+    
+    Copy
+
+Here we added a `Stack.Screen` as a child of `<Stack.Navigator>`.
+
+The `name` of the screen is `settings`. This name is important and will be
+used in step 4 when we map a URL to a screen name.
+
+For the `component` prop, we pass the **same`SettingsScreen` component we used
+for the website**.
+
+### 4\. Configure native `linking`​
+
+To map a URL to a screen on the native app, we'll use React Navigation's
+[linking](https://reactnavigation.org/docs/configuring-links/) feature.
+
+#### Add the URL to the config​
+
+Open `packages/app/provider/navigation/index.tsx`.
+
+Inside the `linking` prop, point the `settings` screen name to the `/settings`
+URL path.
+
+    
+    
+    tsx
+    
+    import { NavigationContainer } from '@react-navigation/native'
+    
+    import * as Linking from 'expo-linking'
+    
+    import { useMemo } from 'react'
+    
+    export function NavigationProvider({
+    
+      children,
+    
+    }: {
+    
+      children: React.ReactNode
+    
+    }) {
+    
+      return (
+    
+        <NavigationContainer
+    
+          linking={useMemo(
+    
+            () => ({
+    
+              prefixes: [
+    
+                // ...add your URLs here
+    
+                Linking.createURL('/'),
+    
+              ],
+    
+              config: {
+    
+                initialRouteName: 'home',
+    
+                screens: {
+    
+                  home: '',
+    
+                  'user-detail': 'user/:id',
+    
+                  settings: 'settings',
+    
+                },
+    
+              },
+    
+            }),
+    
+            []
+    
+          )}
+    
+        >
+    
+          {children}
+    
+        </NavigationContainer>
+    
+      )
+    
+    }
+    
+    Copy
+    
+    
+    tsx
+    
+    import { NavigationContainer } from '@react-navigation/native'
+    
+    import * as Linking from 'expo-linking'
+    
+    import { useMemo } from 'react'
+    
+    export function NavigationProvider({
+    
+      children,
+    
+    }: {
+    
+      children: React.ReactNode
+    
+    }) {
+    
+      return (
+    
+        <NavigationContainer
+    
+          linking={useMemo(
+    
+            () => ({
+    
+              prefixes: [
+    
+                // ...add your URLs here
+    
+                Linking.createURL('/'),
+    
+              ],
+    
+              config: {
+    
+                initialRouteName: 'home',
+    
+                screens: {
+    
+                  home: '',
+    
+                  'user-detail': 'user/:id',
+    
+                  settings: 'settings',
+    
+                },
+    
+              },
+    
+            }),
+    
+            []
+    
+          )}
+    
+        >
+    
+          {children}
+    
+        </NavigationContainer>
+    
+      )
+    
+    }
+    
+    Copy
+
+In the `linking.config.screens` field, **the key is the React Navigation
+screen name, and the value is the URL path.** For example, if we wanted the
+URL for the `settings` screen to be `/preferences`, we could do this instead:
+
+    
+    
+    json
+    
+    {
+    
+      "screens": {
+    
+        "home": "",
+    
+        "user-detail": "user/:id",
+    
+        "settings": "preferences"
+    
+      }
+    
+    }
+    
+    Copy
+    
+    
+    json
+    
+    {
+    
+      "screens": {
+    
+        "home": "",
+    
+        "user-detail": "user/:id",
+    
+        "settings": "preferences"
+    
+      }
+    
+    }
+    
+    Copy
+
+To repeat: the value (i.e. `preferences`) is the URL path. It just ignores the
+leading slash.
+
+##### did you know?
+
+The Expo team is working on bringing [filesystem routing to React
+Native](https://twitter.com/Baconbrix/status/1560353229241831425), similar to
+Next.js and Remix.
+
+### 5\. Bonus​
+
+Now we can link to the `settings` screen from any shared component!
+
+    
+    
+    tsx
+    
+    import { TextLink } from 'solito/link'
+    
+     
+    
+    export function LinkToSettings() {
+    
+      return <TextLink href="/settings">Settings</TextLink>
+    
+    }
+    
+    Copy
+    
+    
+    tsx
+    
+    import { TextLink } from 'solito/link'
+    
+     
+    
+    export function LinkToSettings() {
+    
+      return <TextLink href="/settings">Settings</TextLink>
+    
+    }
+    
+    Copy
+
+You can also use `router.push`:
+
+    
+    
+    tsx
+    
+    import { useRouter } from 'solito/router'
+    
+     
+    
+    export function LinkToSettings() {
+    
+      const router = useRouter()
+    
+     
+    
+      function linkToSettings() {
+    
+        router.push('/settings')
+    
+      }
+    
+     
+    
+      return <Form onSuccess={linkToSettings} />
+    
+    }
+    
+    Copy
+    
+    
+    tsx
+    
+    import { useRouter } from 'solito/router'
+    
+     
+    
+    export function LinkToSettings() {
+    
+      const router = useRouter()
+    
+     
+    
+      function linkToSettings() {
+    
+        router.push('/settings')
+    
+      }
+    
+     
+    
+      return <Form onSuccess={linkToSettings} />
+    
+    }
+    
+    Copy
+
+[Edit this
+page](https://github.com/nandorojo/solito/tree/master/docs/docs/guides/new-
+route.md)
+
+Last updated on **3/11/2024** by **Fernando Rojo**
+
+[ Previoussolito/navigation](/app-directory/hooks)
+
+[NextCreate a dynamic route](/guides/dynamic-route)
+
+  * Starter
+  * Video
+  * Guide
+    * 1\. Create a screen
+    * 2\. Next.js page
+    * 3\. React Navigation
+    * 4\. Configure native `linking`
+    * 5\. Bonus
+

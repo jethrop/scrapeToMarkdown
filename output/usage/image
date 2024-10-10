@@ -1,0 +1,986 @@
+Original page: https://solito.dev/usage/image
+
+On this page
+
+# Image
+
+    
+    
+    tsx
+    
+    import { SolitoImage } from 'solito/image'
+    
+    Copy
+    
+    
+    tsx
+    
+    import { SolitoImage } from 'solito/image'
+    
+    Copy
+
+A drop-in replacement for the [Next.js `Image`
+component](https://nextjs.org/docs/basic-features/image-optimization).
+
+On Web, it uses `next/image`. On iOS & Android, it uses [`expo-
+image`](https://docs.expo.dev/versions/unversioned/sdk/image/), and also
+supports [`react-native-fast-image`](https://github.com/DylanVann/react-
+native-fast-image) for non-Expo users.
+
+## Usage​
+
+### Remote URLs​
+
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      src="https://beatgig.com/image.png"
+    
+      height={100}
+    
+      width={100}
+    
+      alt="A cool artist's image."
+    
+    />
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      src="https://beatgig.com/image.png"
+    
+      height={100}
+    
+      width={100}
+    
+      alt="A cool artist's image."
+    
+    />
+    
+    Copy
+
+### Local files​
+
+    
+    
+    tsx
+    
+    import image from './image.png'
+    
+    export const Image = () => (
+    
+      <SolitoImage
+    
+        src={image}
+    
+        height={100}
+    
+        width={100}
+    
+        alt="A cool image, imported locally."
+    
+      />
+    
+    )
+    
+    Copy
+    
+    
+    tsx
+    
+    import image from './image.png'
+    
+    export const Image = () => (
+    
+      <SolitoImage
+    
+        src={image}
+    
+        height={100}
+    
+        width={100}
+    
+        alt="A cool image, imported locally."
+    
+      />
+    
+    )
+    
+    Copy
+
+> Next.js will not optimize images imported via `require`.
+
+### Public folder images​
+
+With some configuration, you can even use files from your Next.js website's
+`public` folder across platforms:
+
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      src="/image.png"
+    
+      height={100}
+    
+      width={100}
+    
+      alt="A cool artist's image."
+    
+    />
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      src="/image.png"
+    
+      height={100}
+    
+      width={100}
+    
+      alt="A cool artist's image."
+    
+    />
+    
+    Copy
+
+## Props​
+
+Please reference the Next.js [`Image` component](https://nextjs.org/docs/api-
+reference/next/image). It's useful to get acquainted with how it works before
+using `SolitoImage`.
+
+The following props are supported across platforms:
+
+  * `src`
+  * `loader`
+  * `width`
+  * `height`
+  * `quality`
+  * `crossOrigin`
+  * `referrerPolicy`
+  * `alt`
+  * `fill`
+  * `onLoadingComplete`
+  * `onError`
+  * `loading`
+  * `priority`
+  * `placeholder`
+  * `blurDataURL`
+  * `sizes`
+  * `srcSet`
+  * `style` React Native style prop.
+  * `unoptimized`
+  * `contentPosition` (AKA CSS `objectPosition`)
+  * `resizeMode` (AKA CSS `objectFit`)
+
+## Styling​
+
+You can style the image using the `style` prop. It accepts a React Native
+style object.
+
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      style={{
+    
+        borderRadius: 6,
+    
+        transform: [
+    
+          {
+    
+            scale: 1.2,
+    
+          },
+    
+        ],
+    
+      }}
+    
+    />
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      style={{
+    
+        borderRadius: 6,
+    
+        transform: [
+    
+          {
+    
+            scale: 1.2,
+    
+          },
+    
+        ],
+    
+      }}
+    
+    />
+    
+    Copy
+
+### `fill`​
+
+If `fill` is set to `true`, the image will fill the entire container with
+absolute position. You don't need to set `height` and `width` with `fill`.
+
+    
+    
+    tsx
+    
+    <SolitoImage fill src="/my-image.png" />
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImage fill src="/my-image.png" />
+    
+    Copy
+
+### `blurDataURL`​
+
+`SolitoImage` now supports the `blurDataURL` on Native when you set
+`placeholder="blur"`.
+
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      placeholder="blur"
+    
+      blurDataURL="|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj["
+    
+      {...props}
+    
+    />
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      placeholder="blur"
+    
+      blurDataURL="|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj["
+    
+      {...props}
+    
+    />
+    
+    Copy
+
+### `contentPosition`​
+
+You can use `contentPosition` to mirror the `objectPosition` behavior from
+Web.
+
+    
+    
+    tsx
+    
+    <SolitoImage contentPosition="top center" />
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImage contentPosition="top center" />
+    
+    Copy
+
+Note that you can use strings like `center` or `top center`. But if you want
+percentage values, you should pass them as an object, since this is the syntax
+supported by `expo-image`
+
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      // objectPosition="25% 50%" <- CSS equivalent
+    
+      contentPosition={{ top: '25%', left: '50%' }}
+    
+    />
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      // objectPosition="25% 50%" <- CSS equivalent
+    
+      contentPosition={{ top: '25%', left: '50%' }}
+    
+    />
+    
+    Copy
+
+### `resizeMode`​
+
+Rather than `style.objectFit`, use the `resizeMode` prop.
+
+    
+    
+    tsx
+    
+    <SolitoImage src="/image.png" width={200} height={200} resizeMode="cover" />
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImage src="/image.png" width={200} height={200} resizeMode="cover" />
+    
+    Copy
+
+This behavior aligns with React Native images.
+
+## Image Loaders​
+
+`next/image` lets you [configure a `loader`](https://nextjs.org/docs/api-
+reference/next/image#loader) function. `solito/image` brings this
+functionality to iOS & Android. This is where the power of optimized images
+comes in, so it's useful to understand how it works.
+
+Say you use Cloudinary as your image CDN. Your loader would look like this:
+
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      // this is your cloudinary image ID
+    
+      src="239409adf90.jpg"
+    
+      // these are your image's dimensions
+    
+      height={1600}
+    
+      width={900}
+    
+      quality={90}
+    
+      loader={({ quality, src, width }) => {
+    
+        const cloudinaryKey = `your-key`
+    
+        return `https://res.cloudinary.com/${cloudinaryKey}/image/upload/q_${quality},w_${width}/${src}`
+    
+      }}
+    
+    />
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      // this is your cloudinary image ID
+    
+      src="239409adf90.jpg"
+    
+      // these are your image's dimensions
+    
+      height={1600}
+    
+      width={900}
+    
+      quality={90}
+    
+      loader={({ quality, src, width }) => {
+    
+        const cloudinaryKey = `your-key`
+    
+        return `https://res.cloudinary.com/${cloudinaryKey}/image/upload/q_${quality},w_${width}/${src}`
+    
+      }}
+    
+    />
+    
+    Copy
+
+Given a `quality`, `src`, and `width`, the loader generates an image URL.
+Let's examine each parameter.
+
+`src` and `quality` are simple: they're the values passed as props. `quality`
+will be `90`, and `src` will be `239409adf90.jpg`.
+
+`width`, however, is different. You might think that the `width` prop passed
+to the `loader` will be `900`, since that's what we passed to the component.
+However, this is not the case.
+
+The `width` prop passed to `SolitoImage` is meant to be the true width of the
+image file itself. But the `width` passed to the `loader` function could be
+any number.
+
+Under the hood, the image component loops through many different image widths,
+creates a URL for each, and then chooses which one to use. Here's a pseudo-
+code example of what it does:
+
+    
+    
+    tsx
+    
+    // think of it like this:
+    
+    const imageUrls = [100, 200, 300, 400].map((width) =>
+    
+      loader({ quality, src, width })
+    
+    )
+    
+    // then it chooses the best one (again, this is pseudo-code)
+    
+    <img src={imageUrls.find(bestImage)} />
+    
+    Copy
+    
+    
+    tsx
+    
+    // think of it like this:
+    
+    const imageUrls = [100, 200, 300, 400].map((width) =>
+    
+      loader({ quality, src, width })
+    
+    )
+    
+    // then it chooses the best one (again, this is pseudo-code)
+    
+    <img src={imageUrls.find(bestImage)} />
+    
+    Copy
+
+Once the image component has a set of URLs, it determines which one to use. On
+Web, this determination is done by the browser using the [`sizes` and
+`srcSet`](https://developer.mozilla.org/en-
+US/docs/Learn/HTML/Multimedia_and_embedding/Responsive_images#resolution_switching_different_sizes)
+attributes on the `<img />` element.
+
+`SolitoImage` implements `sizes` and `srcSet` logic on iOS & Android using JS
+with screen dimensions to achieve feature parity with Web. [(Source
+code)](https://github.com/nandorojo/solito/blob/next13/src/image/helpers.ts#L118-L243)
+
+To recap – `loader` is a convenient pure function to construct optimized URLs
+for your image.
+
+### Circumventing loader​
+
+If you don't want to use a `loader`, you can pass `unoptimized` to your image.
+It will use the `src` prop as-is.
+
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      height={200}
+    
+      width={200}
+    
+      src="https://beatgig.com/image.png"
+    
+      unoptimized
+    
+    />
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImage
+    
+      height={200}
+    
+      width={200}
+    
+      src="https://beatgig.com/image.png"
+    
+      unoptimized
+    
+    />
+    
+    Copy
+
+### Globally-configured loaders​
+
+Setting the `loader` prop on every image can get a bit tedious.
+
+The Solito recommendation for configuring an image loader across your whole
+app is to use the `<SolitoImageProvider />`.
+
+    
+    
+    tsx
+    
+    <SolitoImageProvider
+    
+      // all image children will default to this loader
+    
+      loader={({ quality, src, width }) => {
+    
+        const cloudinaryKey = `your-key`
+    
+        return `https://res.cloudinary.com/${cloudinaryKey}/image/upload/q_${quality},w_${width}/${src}`
+    
+      }}
+    
+    >
+    
+      <App />
+    
+    </SolitoImageProvider>
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImageProvider
+    
+      // all image children will default to this loader
+    
+      loader={({ quality, src, width }) => {
+    
+        const cloudinaryKey = `your-key`
+    
+        return `https://res.cloudinary.com/${cloudinaryKey}/image/upload/q_${quality},w_${width}/${src}`
+    
+      }}
+    
+    >
+    
+      <App />
+    
+    </SolitoImageProvider>
+    
+    Copy
+
+To learn more about global configuration, see the Configuration section.
+
+##### Migrating from Next.js
+
+If you're using a custom `loaderFile` in your `next.config.js`, you can pass
+the same loader function to `SolitoImageProvider`.
+
+## `public` folder​
+
+Next.js lets you add files to a `public` folder and reference them using a
+relative URL in your app.
+
+For example, if you have `public/image.jpg` in your Next.js app, you can use
+it like so:
+
+    
+    
+    tsx
+    
+    <img src="/image.jpg" />
+    
+    Copy
+    
+    
+    tsx
+    
+    <img src="/image.jpg" />
+    
+    Copy
+
+React Native's `Image` component doesn't have the same approach to static
+assets. You either need to provide an absolute URL, or import a static asset:
+
+    
+    
+    tsx
+    
+    // ✅ React Native allows this
+    
+    <Image source={{ uri: 'https://beatgig.com/some-image.png' }} />
+    
+    // ✅ React Native allows this
+    
+    <Image source={require('./image.png')} />
+    
+    // ❌ React Native does not allow this
+    
+    <Image src="/image.png" />
+    
+    Copy
+    
+    
+    tsx
+    
+    // ✅ React Native allows this
+    
+    <Image source={{ uri: 'https://beatgig.com/some-image.png' }} />
+    
+    // ✅ React Native allows this
+    
+    <Image source={require('./image.png')} />
+    
+    // ❌ React Native does not allow this
+    
+    <Image src="/image.png" />
+    
+    Copy
+
+To keep the convenient APIs of Next.js, `SolitoImage` lets you use your
+website's `public` folder for images across platforms:
+
+    
+    
+    tsx
+    
+    // ✅ SolitoImage allows this
+    
+    <SolitoImage src="/image.png" />
+    
+    Copy
+    
+    
+    tsx
+    
+    // ✅ SolitoImage allows this
+    
+    <SolitoImage src="/image.png" />
+    
+    Copy
+
+In the configuration section below, we'll see how this is possible.
+
+## Configuration​
+
+Since your `images` property from `next.config.js` won't apply to React
+Native, Solito has a `SolitoImageProvider` to define your config instead.
+
+This provider lets you do things like query images on your app from your
+website's `public` folder.
+
+To start, wrap your app in the `SolitoImageProvider`. Next provide a
+`nextJsURL` prop:
+
+    
+    
+    tsx
+    
+    <SolitoImageProvider nextJsURL="https://beatgig.com">
+    
+      <App />
+    
+    </SolitoImageProvider>
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImageProvider nextJsURL="https://beatgig.com">
+    
+      <App />
+    
+    </SolitoImageProvider>
+    
+    Copy
+
+Under the hood, Solito will use the `nextJsURL` as the prefix for static
+assets that are defined as strings.
+
+It's worth mentioning that images imported from the `public` folder will not
+get bundled as static assets in your iOS & Android apps. Instead, they will
+fetch from the network and then cache. If you want the images to bundle in
+your native app, you should import them directly.
+
+### `<SolitoImageProvider />`​
+
+You can think of `SolitoImageProvider` as your `images` configuration from
+`next.config.js`. It accepts the following props:
+
+  * `nextJsURL`: (recommened) The URL of your Next.js app. This is used to prefix static assets that are defined as strings.
+  * `loader`: Globally configure an image loader function. I recommend using this for simplifying your API. See the loaders docs.
+  * `deviceSizes`: An array defining device sizes. Matches the same default as Next.js. [See their docs.](https://nextjs.org/docs/api-reference/next/image#device-sizes)
+  * `imageSizes`: An array defining image sizes. Matches the same default as Next.js. [See their docs.](https://nextjs.org/docs/api-reference/next/image#image-sizes)
+
+    
+    
+    tsx
+    
+    <SolitoImageProvider
+    
+      nextJsURL="https://beatgig.com"
+    
+      loader={({ quality, width, src }) => {
+    
+        return `https://cloudinary.com/${src}?w=${width}&q=${quality}`
+    
+      }}
+    
+    >
+    
+      <App />
+    
+    </SolitoImageProvider>
+    
+    Copy
+    
+    
+    tsx
+    
+    <SolitoImageProvider
+    
+      nextJsURL="https://beatgig.com"
+    
+      loader={({ quality, width, src }) => {
+    
+        return `https://cloudinary.com/${src}?w=${width}&q=${quality}`
+    
+      }}
+    
+    >
+    
+      <App />
+    
+    </SolitoImageProvider>
+    
+    Copy
+
+## Installation​
+
+`solito/image` requires `solito` v2+.
+
+### Next.js​
+
+`solito/image` requires Next.js 13+.
+
+Add the `images` configuration to your `next.config.js`:
+
+    
+    
+    js
+    
+    module.exports = {
+    
+      images: {},
+    
+    }
+    
+    Copy
+    
+    
+    js
+    
+    module.exports = {
+    
+      images: {},
+    
+    }
+    
+    Copy
+
+### Expo​
+
+`solito/image` uses `expo-image` under the hood. This is compatible with Expo
+Dev Client and Expo Go. Just be sure to install `expo-image`.
+
+### Non-Expo Users​
+
+While `SolitoImage` defaults to `expo-image` on native, you can override this
+to use `react-native-fast-image` under the hood, as of v3.
+
+    
+    
+    sh
+    
+    cd apps/expo # change this path to match your react-native app's folder
+    
+    yarn add -D babel-plugin-module-resolver
+    
+    cd ../..
+    
+    yarn
+    
+    Copy
+    
+    
+    sh
+    
+    cd apps/expo # change this path to match your react-native app's folder
+    
+    yarn add -D babel-plugin-module-resolver
+    
+    cd ../..
+    
+    yarn
+    
+    Copy
+
+Next, edit your `apps/expo/babel.config.js` file to add a resolution from
+`solito/image` to `solito/image/react-native-fast-image`. If you renamed
+`apps/expo` to something else, go to that folder.
+
+    
+    
+    js
+    
+    // babel.config.js
+    
+    module.exports = function (api) {
+    
+      api.cache(true)
+    
+      return {
+    
+        presets: [['babel-preset-expo', { jsxRuntime: 'automatic' }]],
+    
+        plugins: [
+    
+          'react-native-reanimated/plugin',
+    
+          [
+    
+            'module-resolver',
+    
+            {
+    
+              root: ['./'],
+    
+              alias: {
+    
+                'solito/image': 'solito/image/react-native-fast-image',
+    
+              },
+    
+            },
+    
+          ],
+    
+        ],
+    
+      }
+    
+    }
+    
+    Copy
+    
+    
+    js
+    
+    // babel.config.js
+    
+    module.exports = function (api) {
+    
+      api.cache(true)
+    
+      return {
+    
+        presets: [['babel-preset-expo', { jsxRuntime: 'automatic' }]],
+    
+        plugins: [
+    
+          'react-native-reanimated/plugin',
+    
+          [
+    
+            'module-resolver',
+    
+            {
+    
+              root: ['./'],
+    
+              alias: {
+    
+                'solito/image': 'solito/image/react-native-fast-image',
+    
+              },
+    
+            },
+    
+          ],
+    
+        ],
+    
+      }
+    
+    }
+    
+    Copy
+
+### Upgrade from v2 to v3​
+
+v3 introduced a few breaking changes for `solito/image`. See the [v3 Release
+Notes](https://github.com/nandorojo/solito/releases/tag/v3.0.0) for an upgrade
+guide.
+
+[Edit this
+page](https://github.com/nandorojo/solito/tree/master/docs/docs/usage/image.mdx)
+
+Last updated on **3/11/2024** by **Fernando Rojo**
+
+[ Previous<MotiLink />](/usage/moti-link)
+
+[NextuseRouter()](/usage/use-router)
+
+  * Usage
+    * Remote URLs
+    * Local files
+    * Public folder images
+  * Props
+  * Styling
+    * `fill`
+    * `blurDataURL`
+    * `contentPosition`
+    * `resizeMode`
+  * Image Loaders
+    * Circumventing loader
+    * Globally-configured loaders
+  * `public` folder
+  * Configuration
+    * `<SolitoImageProvider />`
+  * Installation
+    * Next.js
+    * Expo
+    * Non-Expo Users
+    * Upgrade from v2 to v3
+

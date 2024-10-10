@@ -1,0 +1,347 @@
+Original page: https://solito.dev/recipes/use-is-focused
+
+On this page
+
+# useIsFocused
+
+Since `useIsFocused()` only applicable on Native, you can replace it with a
+custom function on Web.
+
+## Create your exports​
+
+**`hooks/use-is-focused.ts`**
+
+    
+    
+     ts
+    
+    export { useIsFocused } from '@react-navigation/native'
+    
+    Copy
+    
+    
+    ts
+    
+    export { useIsFocused } from '@react-navigation/native'
+    
+    Copy
+
+**`hooks/use-is-focused.web.ts`**
+
+    
+    
+     ts
+    
+    export function useIsFocused() {
+    
+      return true
+    
+    }
+    
+    Copy
+    
+    
+    ts
+    
+    export function useIsFocused() {
+    
+      return true
+    
+    }
+    
+    Copy
+
+On Web, screens are always focused when they're mounted.
+
+## Import your file​
+
+    
+    
+    ts
+    
+    import { useIsFocused } from 'hooks/use-is-focused'
+    
+    Copy
+    
+    
+    ts
+    
+    import { useIsFocused } from 'hooks/use-is-focused'
+    
+    Copy
+
+## Custom Web Logic​
+
+> This section is a little more advanced. It's relevant if you're using modals
+> with Next Router.
+
+In the above example, we always return `true` on Web.
+
+One exception might be if there is a shallow routed modal on top of a screen.
+
+For example, say that you have an `EditArtist` modal that shows when the URL
+contains a query param like `/artists/drake?showsEditModal=true`.
+
+If you want to implement this logic, you could do it yourself on Web using a
+combination of React Context and checking query params with `useRouter` from
+`next/router`.
+
+### Create a context​
+
+First, in a file called `context/modal-screen` create your
+`ModalScreenContext`. This will let screens detect if they are a modal or not.
+
+    
+    
+    ts
+    
+    import { createContext } from 'react'
+    
+     
+    
+    export const ModalScreenContext = createContext(false)
+    
+    Copy
+    
+    
+    ts
+    
+    import { createContext } from 'react'
+    
+     
+    
+    export const ModalScreenContext = createContext(false)
+    
+    Copy
+
+Then, your actual Next.js page could look something like this:
+
+    
+    
+    tsx
+    
+    // pages/artist/[slug].tsx
+    
+    import { ModalScreenContext } from 'context/modal-screen'
+    
+    import { useRouter } from 'next/router'
+    
+    export default function ArtistPage() {
+    
+      const router = useRouter()
+    
+      return (
+    
+        <>
+    
+          <ArtistScreen />
+    
+          <ModalScreenContext.Provider value={true}>
+    
+            {!!router?.query?.showsEditModal && <EditArtistModal />}
+    
+          </ModalScreenContext.Provider>
+    
+        </>
+    
+      )
+    
+    }
+    
+    Copy
+    
+    
+    tsx
+    
+    // pages/artist/[slug].tsx
+    
+    import { ModalScreenContext } from 'context/modal-screen'
+    
+    import { useRouter } from 'next/router'
+    
+    export default function ArtistPage() {
+    
+      const router = useRouter()
+    
+      return (
+    
+        <>
+    
+          <ArtistScreen />
+    
+          <ModalScreenContext.Provider value={true}>
+    
+            {!!router?.query?.showsEditModal && <EditArtistModal />}
+    
+          </ModalScreenContext.Provider>
+    
+        </>
+    
+      )
+    
+    }
+    
+    Copy
+
+Notice that the `EditArtistModal` is wrapped with the
+`ModalScreenContext.Provider`, and the `value` is `true`.
+
+This means that any component inside of `EditArtistModal` will know it is a
+modal, whereas every component inside of `ArtistScreen` will know it is _not_
+a modal.
+
+### Use the context​
+
+If you stick to the pattern of always including the word `modal` in the URL,
+you can use the `useRouter` hook to check if the URL contains the query param:
+
+The logic for `useIsFocused` should now be this: your hook is focused if one
+of these conditions is true:
+
+  1. the hook is inside of a (mounted) modal, or
+
+  2. the hook is not a modal, and there is no modal mounted
+
+a. Why? If this hook is not in a modal, but a modal is mounted, then that
+means that this hook is underneath the modal, and thus not focused.
+
+    
+    
+    ts
+    
+    import { useContext } from 'react'
+    
+    import { useRouter } from 'next/router'
+    
+    import { ModalScreenContext } from './context/modal-screen'
+    
+     
+    
+    export function useIsFocused() {
+    
+      const { query } = useRouter()
+    
+      const iAmAModal = useContext(ModalScreenContext)
+    
+     
+    
+      if (iAmAModal) {
+    
+        return true
+    
+      }
+    
+     
+    
+      const isThereAModalVisibleOnTopOfMe = 
+    
+        // check if there is a query param with "modal"
+    
+        Object.keys(query ?? {}).some((key) => key.toLowerCase().includes('modal')) 
+    
+     
+    
+      return !isThereAModalVisibleOnTopOfMe
+    
+    }
+    
+    Copy
+    
+    
+    ts
+    
+    import { useContext } from 'react'
+    
+    import { useRouter } from 'next/router'
+    
+    import { ModalScreenContext } from './context/modal-screen'
+    
+     
+    
+    export function useIsFocused() {
+    
+      const { query } = useRouter()
+    
+      const iAmAModal = useContext(ModalScreenContext)
+    
+     
+    
+      if (iAmAModal) {
+    
+        return true
+    
+      }
+    
+     
+    
+      const isThereAModalVisibleOnTopOfMe = 
+    
+        // check if there is a query param with "modal"
+    
+        Object.keys(query ?? {}).some((key) => key.toLowerCase().includes('modal')) 
+    
+     
+    
+      return !isThereAModalVisibleOnTopOfMe
+    
+    }
+    
+    Copy
+
+To use this as a repeatable method, it's important that you always use the
+word `modal` as a query param to denote that a modal is open.
+
+Finally, you can navigate to this modal screen like so:
+
+    
+    
+    tsx
+    
+    <Link href="/artists/drake" query={{ showsEditModal: true }} />
+    
+    Copy
+    
+    
+    tsx
+    
+    <Link href="/artists/drake" query={{ showsEditModal: true }} />
+    
+    Copy
+
+And if you implement some custom modal logic, you might end up having a link
+with a fancier `as` prop:
+
+    
+    
+    tsx
+    
+    <Link href="/artists/drake" as="/@drake/edit" query={{ showsEditModal: true }} shallow />
+    
+    Copy
+    
+    
+    tsx
+    
+    <Link href="/artists/drake" as="/@drake/edit" query={{ showsEditModal: true }} shallow />
+    
+    Copy
+
+That way, you could put the edit modal as a full page when someone refreshes.
+But that's for another day...
+
+[Edit this
+page](https://github.com/nandorojo/solito/tree/master/docs/docs/recipes/use-
+is-focused.mdx)
+
+Last updated on **3/11/2024** by **Fernando Rojo**
+
+[ PreviousTree Shaking](/recipes/tree-shaking)
+
+[NextScroll Views](/recipes/scroll-view)
+
+  * Create your exports
+  * Import your file
+  * Custom Web Logic
+    * Create a context
+    * Use the context
+

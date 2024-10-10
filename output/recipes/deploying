@@ -1,0 +1,56 @@
+Original page: https://solito.dev/recipes/deploying
+
+On this page
+
+# Deploying
+
+Using both Github Actions and the tools provided by companies such as Vercel,
+we can deploy both our web app and update our mobile app on each commit.
+
+## Web​
+
+Deploying to [Vercel](https://vercel.com) works out of the box when you link
+your project via GitHub.
+
+## Expo​
+
+While Expo doesn't have a GitHub integration like Vercel, they do offer
+documentation for setting up deployments via Github Action to publish on each
+commit: [Expo Github Actions](https://docs.expo.dev/eas-update/github-
+actions/)
+
+However, Expo's docs don't account for a monorepo structure. By adding in
+`working-directory` to the Expo Github action, you can run `eas update` in the
+correct directory.
+
+    
+    
+    .github/workflows/update.yml
+    
+    - name: Publish update
+      run: eas update --auto
+      working-directory: ./apps/expo
+    
+    Copy
+    
+    
+    .github/workflows/update.yml
+    
+    - name: Publish update
+      run: eas update --auto
+      working-directory: ./apps/expo
+    
+    Copy
+
+[Edit this
+page](https://github.com/nandorojo/solito/tree/master/docs/docs/recipes/deploying.mdx)
+
+Last updated on **3/11/2024** by **Fernando Rojo**
+
+[ PreviousModals](/recipes/modals)
+
+[NextPlatform-Specific Code](/recipes/platform-code)
+
+  * Web
+  * Expo
+
