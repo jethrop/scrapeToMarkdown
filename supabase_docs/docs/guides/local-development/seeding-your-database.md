@@ -1,0 +1,480 @@
+[![Supabase wordmark](/docs/_next/image?url=%2Fdocs%2Fsupabase-
+dark.svg&w=256&q=75&dpl=dpl_BJ9ShNdrRifaAcUSP15Lr1pJVtdF)![Supabase
+wordmark](/docs/_next/image?url=%2Fdocs%2Fsupabase-
+light.svg&w=256&q=75&dpl=dpl_BJ9ShNdrRifaAcUSP15Lr1pJVtdF)DOCS](/docs)
+
+  * [Start](/docs/guides/getting-started)
+  * Products
+  * Build
+  * Manage
+  * Reference
+  * Resources
+
+[![Supabase wordmark](/docs/_next/image?url=%2Fdocs%2Fsupabase-
+dark.svg&w=256&q=75&dpl=dpl_BJ9ShNdrRifaAcUSP15Lr1pJVtdF)![Supabase
+wordmark](/docs/_next/image?url=%2Fdocs%2Fsupabase-
+light.svg&w=256&q=75&dpl=dpl_BJ9ShNdrRifaAcUSP15Lr1pJVtdF)DOCS](/docs)
+
+Search docs...
+
+K
+
+Local Development
+
+  1. [Local Dev / CLI](/docs/guides/local-development)
+  2.   3. Local development
+  4.   5. [Seeding your database](/docs/guides/local-development/seeding-your-database)
+  6. 
+
+# Seeding your database
+
+## Populate your database with initial data for reproducible environments
+across local and testing.
+
+* * *
+
+## What is seed data?#
+
+Seeding is the process of populating a database with initial data, typically
+used to provide sample or default records for testing and development
+purposes. You can use this to create "reproducible environments" for local
+development, staging, and production.
+
+## Using seed files#
+
+Seed files are executed every time you run `supabase start` or `supabase db
+reset`. Seeding occurs _after_ all database migrations have been completed. As
+a best practice, only include data insertions in your seed files, and avoid
+adding schema statements.
+
+By default, if no specific configuration is provided, the system will look for
+a seed file matching the pattern `supabase/seed.sql`. This maintains backward
+compatibility with earlier versions, where the seed file was placed in the
+`supabase` folder.
+
+You can add any SQL statements to this file. For example:
+
+`  
+
+_10
+
+insert into countries
+
+_10
+
+(name, code)
+
+_10
+
+values
+
+_10
+
+('United States', 'US'),
+
+_10
+
+('Canada', 'CA'),
+
+_10
+
+('Mexico', 'MX');
+
+  
+`
+
+If you want to manage multiple seed files or organize them across different
+folders, you can configure additional paths or glob patterns in your
+`config.toml` (see the next section for details).
+
+### Splitting up your seed file#
+
+For better modularity and maintainability, you can split your seed data into
+multiple files. For example, you can organize your seeds by table and include
+files such as `countries.sql` and `cities.sql`. Configure them in
+`config.toml` like so:
+
+supabase/config.toml
+
+`  
+
+_10
+
+[db.seed]
+
+_10
+
+enabled = true
+
+_10
+
+sql_paths = ['./countries.sql', './cities.sql']
+
+  
+`
+
+Or to include all `.sql` files under a specific folder you can do:
+
+supabase/config.toml
+
+`  
+
+_10
+
+[db.seed]
+
+_10
+
+enabled = true
+
+_10
+
+sql_paths = ['./seeds/*.sql']
+
+  
+`
+
+The CLI processes seed files in the order they are declared in the `sql_paths`
+array. If a glob pattern is used and matches multiple files, those files are
+sorted in lexicographic order to ensure consistent execution. Additionally:
+
+  * The base folder for the pattern matching is `supabase` so `./contries.sql` will search for `supabase/contries.sql`
+  * Files matched by multiple patterns will be deduplicated to prevent redundant seeding.
+  * If a pattern does not match any files, a warning will be logged to help you troubleshoot potential configuration issues.
+
+## Generating seed data#
+
+You can generate seed data for local development using
+[Snaplet](https://github.com/snaplet/seed).
+
+To use Snaplet, you need to have Node.js and npm installed. You can add
+Node.js to your project by running `npm init -y` in your project directory.
+
+If this is your first time using Snaplet to seed your project, you'll need to
+set up Snaplet with the following command:
+
+`  
+
+_10
+
+npx @snaplet/seed init
+
+  
+`
+
+This command will analyze your database and its structure, and then generate a
+JavaScript client which can be used to define exactly how your data should be
+generated using code. The `init` command generates a configuration file,
+`seed.config.ts` and an example script, `seed.ts`, as a starting point.
+
+During `init` if you are not using an Object Relational Mapper (ORM) or your
+ORM is not in the supported list, choose `node-postgres`.
+
+In most cases you only want to generate data for specific schemas or tables.
+This is defined with `select`. Here is an example `seed.config.ts`
+configuration file:
+
+`  
+
+_11
+
+export default defineConfig({
+
+_11
+
+adapter: async () => {
+
+_11
+
+const client = new Client({
+
+_11
+
+connectionString: 'postgresql://postgres:postgres@localhost:54322/postgres',
+
+_11
+
+})
+
+_11
+
+await client.connect()
+
+_11
+
+return new SeedPg(client)
+
+_11
+
+},
+
+_11
+
+// We only want to generate data for the public schema
+
+_11
+
+select: ['!*', 'public.*'],
+
+_11
+
+})
+
+  
+`
+
+Suppose you have a database with the following schema:
+
+![An example schema](/docs/img/guides/cli/snaplet-example-schema.png)
+
+You can use the seed script example generated by Snaplet `seed.ts` to define
+the values you want to generate. For example:
+
+  * A `Post` with the title `"There is a lot of snow around here!"`
+  * The `Post.createdBy` user with an email address ending in `"@acme.org"`
+  * Three `Post.comments` from three different users.
+
+seed.ts
+
+`  
+
+_23
+
+import { createSeedClient } from '@snaplet/seed'
+
+_23
+
+import { copycat } from '@snaplet/copycat'
+
+_23
+
+_23
+
+async function main() {
+
+_23
+
+const seed = await createSeedClient({ dryRun: true })
+
+_23
+
+_23
+
+await seed.Post([
+
+_23
+
+{
+
+_23
+
+title: 'There is a lot of snow around here!',
+
+_23
+
+createdBy: {
+
+_23
+
+email: (ctx) =>
+
+_23
+
+copycat.email(ctx.seed, {
+
+_23
+
+domain: 'acme.org',
+
+_23
+
+}),
+
+_23
+
+},
+
+_23
+
+Comment: (x) => x(3),
+
+_23
+
+},
+
+_23
+
+])
+
+_23
+
+_23
+
+process.exit()
+
+_23
+
+}
+
+_23
+
+_23
+
+main()
+
+  
+`
+
+Running `npx tsx seed.ts > supabase/seed.sql` generates the relevant SQL
+statements inside your `supabase/seed.sql` file:
+
+`  
+
+_18
+
+-- The `Post.createdBy` user with an email address ending in `"@acme.org"`
+
+_18
+
+INSERT INTO "User" (name, email) VALUES ("John Snow", "[[email
+protected]](/cdn-cgi/l/email-protection)")
+
+_18
+
+_18
+
+--- A `Post` with the title `"There is a lot of snow around here!"`
+
+_18
+
+INSERT INTO "Post" (title, content, createdBy) VALUES (
+
+_18
+
+"There is a lot of snow around here!",
+
+_18
+
+"Lorem ipsum dolar",
+
+_18
+
+1)
+
+_18
+
+_18
+
+--- Three `Post.Comment` from three different users.
+
+_18
+
+INSERT INTO "User" (name, email) VALUES ("Stephanie Shadow", "[[email
+protected]](/cdn-cgi/l/email-protection)")
+
+_18
+
+INSERT INTO "Comment" (text, userId, postId) VALUES ("I love cheese", 2, 1)
+
+_18
+
+_18
+
+INSERT INTO "User" (name, email) VALUES ("John Rambo", "[[email
+protected]](/cdn-cgi/l/email-protection)")
+
+_18
+
+INSERT INTO "Comment" (text, userId, postId) VALUES ("Lorem ipsum dolar sit",
+3, 1)
+
+_18
+
+_18
+
+INSERT INTO "User" (name, email) VALUES ("Steven Plank", "[[email
+protected]](/cdn-cgi/l/email-protection)")
+
+_18
+
+INSERT INTO "Comment" (text, userId, postId) VALUES ("Actually, that's not
+correct...", 4, 1)
+
+  
+`
+
+Whenever your database structure changes, you will need to regenerate
+`@snaplet/seed` to keep it in sync with the new structure. You can do this by
+running:
+
+`  
+
+_10
+
+npx @snaplet/seed sync
+
+  
+`
+
+You can further enhance your seed script by using Large Language Models to
+generate more realistic data. To enable this feature, set one of the following
+environment variables in your `.env` file:
+
+`  
+
+_10
+
+OPENAI_API_KEY=<your_openai_api_key>
+
+_10
+
+GROQ_API_KEY=<your_groq_api_key>
+
+  
+`
+
+After setting the environment variables, run the following commands to sync
+and generate the seed data:
+
+`  
+
+_10
+
+npx @snaplet/seed sync
+
+_10
+
+npx tsx seed.ts > supabase/seed.sql
+
+  
+`
+
+For more information, check out Snaplet's [seed
+documentation](https://snaplet-seed.netlify.app/seed/integrations/supabase)
+
+[Edit this page on GitHub
+](https://github.com/supabase/supabase/blob/master/apps/docs/content/guides/local-
+development/seeding-your-database.mdx)
+
+  * Need some help?
+
+[Contact support](https://supabase.com/support)
+
+  * Latest product updates?
+
+[See Changelog](https://supabase.com/changelog)
+
+  * Something's not right?
+
+[Check system status](https://status.supabase.com/)
+
+* * *
+
+[© Supabase
+Inc](https://supabase.com/)—[Contributing](https://github.com/supabase/supabase/blob/master/apps/docs/DEVELOPERS.md)[Author
+Styleguide](https://github.com/supabase/supabase/blob/master/apps/docs/CONTRIBUTING.md)[Open
+Source](https://supabase.com/open-
+source)[SupaSquad](https://supabase.com/supasquad)Privacy Settings
+
+[GitHub](https://github.com/supabase/supabase)[Twitter](https://twitter.com/supabase)[Discord](https://discord.supabase.com/)
+
