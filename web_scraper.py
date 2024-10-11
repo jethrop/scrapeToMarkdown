@@ -10,6 +10,7 @@ Main features:
 3. Saves each page as a separate Markdown file, maintaining the original site structure
 4. Creates a table of contents for the scraped content
 5. Adds the output directory to .gitignore in the Git root directory
+6. Implements secure coding practices, including input validation and sanitization
 
 Usage:
     python web_scraper.py -u <url> -o <output_dir> [options]
@@ -29,6 +30,7 @@ Options:
 Dependencies:
     - scrapy
     - html2text
+    - validators
 
 This script is designed to be flexible and can be used for various web scraping tasks,
 including documentation retrieval, content archiving, and offline reading preparation.
@@ -45,13 +47,11 @@ import subprocess
 import re
 import sys
 import hashlib
+import validators
 
 def find_git_root(path):
     """
     Find the root directory of the Git repository.
-    
-    This function searches for the Git root directory starting from the given path
-    and moving up the directory tree.
     
     Args:
         path (str): The starting path to search from
@@ -71,26 +71,17 @@ def escape_gitignore_pattern(pattern):
     """
     Escape special characters in a gitignore pattern.
 
-    This function ensures that special characters in the gitignore pattern
-    are properly escaped to maintain their literal meaning.
-
     Args:
         pattern (str): The gitignore pattern to escape
 
     Returns:
         str: The escaped gitignore pattern
     """
-    # Escape special characters: #, !, [, ]
-    escaped_pattern = re.sub(r'([#!\[\]])', r'\\\1', pattern)
-    return escaped_pattern
+    return re.sub(r'([#!\[\]])', r'\\\1', pattern)
 
 def update_gitignore(output_dir, negate=False):
     """
     Update .gitignore file in the Git root directory to include the output directory.
-    
-    This function adds the specified output directory to the .gitignore file
-    in the Git root directory, preventing the scraped content from being
-    tracked by version control.
     
     Args:
         output_dir (str): The directory where scraped content is saved
@@ -110,45 +101,35 @@ def update_gitignore(output_dir, negate=False):
     if negate:
         gitignore_entry = f"!{gitignore_entry}"
 
-    # Check if .gitignore exists, if not create it
     if not os.path.exists(gitignore_path):
         open(gitignore_path, 'a').close()
 
-    # Read existing .gitignore content
-    with open(gitignore_path, 'r') as file:
+    with open(gitignore_path, 'r+') as file:
         content = file.read()
-
-    # Check if the output directory is already in .gitignore
-    if gitignore_entry not in content:
-        # Append the output directory to .gitignore
-        with open(gitignore_path, 'a') as file:
+        if gitignore_entry not in content:
+            file.seek(0, 2)
             file.write(f"\n# Scraped content\n{gitignore_entry}\n")
-        print(f"Added {gitignore_entry} to .gitignore in {git_root}")
-    else:
-        print(f"{gitignore_entry} already in .gitignore")
+            print(f"Added {gitignore_entry} to .gitignore in {git_root}")
+        else:
+            print(f"{gitignore_entry} already in .gitignore")
 
 def read_urls_from_file(file_path):
     """
     Read URLs from a file, one URL per line.
 
-    This function reads a text file containing URLs and returns them as a list.
-    Empty lines and leading/trailing whitespace are ignored.
-
     Args:
         file_path (str): Path to the file containing URLs
 
     Returns:
-        list: List of URLs read from the file
+        list: List of valid URLs read from the file
     """
     with open(file_path, 'r') as file:
-        return [line.strip() for line in file if line.strip()]
+        urls = [line.strip() for line in file if line.strip()]
+    return [url for url in urls if validators.url(url)]
 
 def parse_size(size):
     """
     Parse a human-readable size string (e.g., '4GB') to bytes.
-
-    This function converts a human-readable file size string to its
-    equivalent value in bytes. It supports units B, KB, MB, GB, and TB.
 
     Args:
         size (str): A string representing a file size (e.g., '4GB', '100MB')
@@ -167,9 +148,7 @@ def parse_size(size):
         'TB': 1024 ** 4
     }
     size = size.upper()
-    print(f"Debug: Input size string: {size}")  # Debug print
     match = re.match(r'^(\d+(\.\d+)?)\s*([B|KB|MB|GB|TB])$', size)
-    print(f"Debug: Regex match result: {match}")  # Debug print
     if not match:
         raise ValueError("Invalid size format. Use something like '4GB' or '100MB'.")
     
@@ -199,75 +178,85 @@ class WebsiteSpider(scrapy.Spider):
             return
 
         try:
-            current_path = urlparse(response.url).path
-            
-            # Check if the current URL is within the original URL path or its subdirectories
-            if not current_path.startswith(self.original_url_path):
+            if not self.is_valid_url(response.url):
                 return
 
-            # Check if the current URL is within the specified subdirectory (if any)
-            if self.subdir and not current_path.startswith(self.subdir):
-                return
-
-            # Update total data downloaded
             self.total_data_downloaded += len(response.body)
 
-            # Extract main content
-            main_content = response.css('main').get() or response.css('article').get() or response.css('body').get()
+            markdown_content = self.extract_and_convert_content(response)
+            file_path = self.create_file_path(response.url)
+            self.save_markdown_file(file_path, markdown_content)
 
-            # Convert HTML to Markdown
-            markdown_content = self.h2t.handle(main_content)
+            title = self.extract_title(response)
+            self.update_sitemap(response.url, title, file_path)
 
-            # Add original page link as documentation
-            markdown_content = f"Original page: {response.url}\n\n{markdown_content}"
-
-            # Create file path that mirrors the source site directory structure
-            domain = urlparse(response.url).netloc
-            url_path = current_path
-            if url_path.endswith('/') or url_path == '':
-                url_path += 'index'
-            
-            # Generate a unique filename using a hash of the URL
-            url_hash = hashlib.md5(response.url.encode()).hexdigest()[:8]
-            file_name = f"{os.path.basename(url_path)}_{url_hash}.md"
-            file_path = os.path.join(self.output_dir, domain, os.path.dirname(url_path.lstrip('/')), file_name)
-
-            # Ensure directory exists only when we're about to write a file
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-            # Write content to file
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(markdown_content)
-
-            # Extract title from the page
-            title = response.css('title::text').get() or os.path.basename(file_path)
-
-            self.sitemap.append((domain, title, response.url, file_path))
-            self.logger.info(f"Scraped: {response.url} -> {file_path}")
-
-            # Follow links within the same domain and original URL path
             if not self.h2t.ignore_links and (not self.data_limit or self.total_data_downloaded < self.data_limit):
-                for href in response.css('a::attr(href)').getall():
-                    url = urljoin(response.url, href)
-                    parsed_url = urlparse(url)
-                    if parsed_url.netloc == domain and parsed_url.path.startswith(self.original_url_path):
-                        yield scrapy.Request(url, callback=self.parse)
+                yield from self.follow_links(response)
 
         except Exception as e:
             self.logger.error(f"Error scraping {response.url}: {str(e)}")
+
+    def is_valid_url(self, url):
+        """Check if the URL is valid and within the allowed scope."""
+        current_path = urlparse(url).path
+        return (current_path.startswith(self.original_url_path) and
+                (not self.subdir or current_path.startswith(self.subdir)))
+
+    def extract_and_convert_content(self, response):
+        """Extract main content and convert to Markdown."""
+        main_content = response.css('main').get() or response.css('article').get() or response.css('body').get()
+        markdown_content = self.h2t.handle(main_content)
+        return f"Original page: {response.url}\n\n{markdown_content}"
+
+    def create_file_path(self, url):
+        """Create a file path for the Markdown file."""
+        domain = urlparse(url).netloc
+        url_path = urlparse(url).path
+        if url_path.endswith('/') or url_path == '':
+            url_path += 'index'
+        
+        url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+        file_name = f"{os.path.basename(url_path)}_{url_hash}.md"
+        return os.path.join(self.output_dir, domain, os.path.dirname(url_path.lstrip('/')), file_name)
+
+    def save_markdown_file(self, file_path, content):
+        """Save the Markdown content to a file."""
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+    def extract_title(self, response):
+        """Extract the title from the page."""
+        return response.css('title::text').get() or os.path.basename(response.url)
+
+    def update_sitemap(self, url, title, file_path):
+        """Update the sitemap with the scraped page information."""
+        domain = urlparse(url).netloc
+        self.sitemap.append((domain, title, url, file_path))
+        self.logger.info(f"Scraped: {url} -> {file_path}")
+
+    def follow_links(self, response):
+        """Follow links within the same domain and original URL path."""
+        domain = urlparse(response.url).netloc
+        for href in response.css('a::attr(href)').getall():
+            url = urljoin(response.url, href)
+            parsed_url = urlparse(url)
+            if parsed_url.netloc == domain and parsed_url.path.startswith(self.original_url_path):
+                yield scrapy.Request(url, callback=self.parse)
 
     def closed(self, reason):
         self.create_table_of_contents()
 
     def create_table_of_contents(self):
-        """
-        Create a table of contents for the scraped content.
+        """Create a table of contents for the scraped content."""
+        toc_content = self.generate_toc_header()
+        sorted_sitemap = sorted(self.sitemap, key=lambda x: (x[0], x[3]))
+        toc_content += self.generate_toc_entries(sorted_sitemap)
+        self.save_toc_file(toc_content)
 
-        This method generates a Markdown file containing a hierarchical
-        table of contents for all scraped pages, organized by domain
-        and file structure.
-        """
-        toc_content = """# Table of Contents
+    def generate_toc_header(self):
+        """Generate the header for the table of contents."""
+        return """# Table of Contents
 
 This table of contents provides an overview of all the pages scraped from the website(s). It is organized hierarchically to reflect the structure of the original site(s). You can use this table of contents to:
 
@@ -281,9 +270,9 @@ Each entry in the table of contents is a link to the corresponding Markdown file
 
 """
 
-        # Sort the sitemap by domain and then by file path to group related pages together
-        sorted_sitemap = sorted(self.sitemap, key=lambda x: (x[0], x[3]))
-
+    def generate_toc_entries(self, sorted_sitemap):
+        """Generate the entries for the table of contents."""
+        toc_content = ""
         current_domain = None
         for domain, title, url, file_path in sorted_sitemap:
             if domain != current_domain:
@@ -291,11 +280,13 @@ Each entry in the table of contents is a link to the corresponding Markdown file
                 current_domain = domain
 
             relative_path = os.path.relpath(file_path, self.output_dir)
-            parts = relative_path.split(os.sep)
-            depth = len(parts) - 2  # Subtract 2 to account for the domain directory
+            depth = len(relative_path.split(os.sep)) - 2
             indent = '  ' * depth
             toc_content += f"{indent}- [{title}]({relative_path})\n"
+        return toc_content
 
+    def save_toc_file(self, toc_content):
+        """Save the table of contents to a file."""
         toc_file_path = os.path.join(self.output_dir, 'table_of_contents.md')
         os.makedirs(os.path.dirname(toc_file_path), exist_ok=True)
         with open(toc_file_path, 'w', encoding='utf-8') as f:
@@ -314,24 +305,23 @@ def main():
     parser.add_argument('--data-download-limit', help='Limit the amount of data to download (e.g., 4GB). Note: This is a beta feature.')
     args = parser.parse_args()
 
-    # Set up logging
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    # Ensure output directory exists
     output_dir = os.path.abspath(args.output)
     os.makedirs(output_dir, exist_ok=True)
 
-    # Update .gitignore
     update_gitignore(output_dir)
 
-    # Determine if input is a URL or a file
     if args.file:
         start_urls = read_urls_from_file(args.file)
     else:
-        start_urls = [args.url]
+        start_urls = [args.url] if validators.url(args.url) else []
 
-    # Parse data download limit
+    if not start_urls:
+        print("Error: No valid URLs provided.", file=sys.stderr)
+        sys.exit(1)
+
     data_limit = None
     if args.data_download_limit:
         try:

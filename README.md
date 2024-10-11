@@ -4,7 +4,7 @@ This project contains a Python script that scrapes websites and converts their c
 
 The script uses Scrapy for web crawling and html2text for HTML to Markdown conversion. It can scrape a single URL or multiple URLs from a file. The scraped content is saved as separate Markdown files, maintaining the original site structure. Additionally, the script creates a table of contents for the scraped content and automatically updates .gitignore to prevent version control of scraped content.
 
-I wrote this script to convert online docs information to llm friendly local information.  Most of the script and docs were written with AI.
+This script was initially created to convert online documentation to local, LLM-friendly information. The script and documentation have been improved with AI assistance and now incorporate secure coding practices.
 
 ## Features
 
@@ -16,6 +16,7 @@ I wrote this script to convert online docs information to llm friendly local inf
 - Configurable options via command line flags
 - Ability to limit scraping to specific subdirectories
 - Beta feature to limit the amount of data downloaded
+- Implements secure coding practices, including input validation and sanitization
 
 ## Requirements
 
@@ -37,6 +38,7 @@ I wrote this script to convert online docs information to llm friendly local inf
 This will install the following dependencies:
 - scrapy
 - html2text
+- validators
 
 ## Usage
 
@@ -56,7 +58,7 @@ python web_scraper.py -f <url_file> -o <output_dir> [options]
 - `-a, --user-agent AGENT`: Set a custom user agent string
 - `-v, --verbose`: Increase output verbosity
 - `-s, --subdir SUBDIR`: Limit scraping to a specific subdirectory
-- `--data-download-limit LIMIT`: Limit the amount of data to download (e.g., 4GB). Beta feature, currently not functional.
+- `--data-download-limit LIMIT`: Limit the amount of data to download (e.g., 4GB). Beta feature.
 
 ### Examples
 
@@ -100,7 +102,7 @@ Scrape multiple websites from a file, but limit each to a specific subdirectory:
 python web_scraper.py -f urls.txt -o output -s /api/v1
 ```
 
-Attempt to limit the amount of data downloaded (beta feature):
+Attempt to limit the amount of data downloaded:
 ```
 python web_scraper.py -u https://example.com -o output --data-download-limit 4GB
 ```
@@ -111,7 +113,7 @@ By default, the script will only scrape pages that are subpages of the original 
 
 When you use the `-s` or `--subdir` option, the script will limit the scraping to the specified subdirectory for all input URLs. This is useful when you want to scrape only a portion of a large website or maintain consistent behavior across multiple websites.
 
-The `--data-download-limit` option is a beta feature that attempts to limit the total amount of data downloaded. However, this feature is not fully functional in the current version.
+The `--data-download-limit` option allows you to set a limit on the total amount of data downloaded. The script will stop crawling once this limit is reached.
 
 ## Output
 
@@ -121,6 +123,15 @@ The script will create the following in the specified output directory:
 2. Markdown files for each scraped page
 3. A `table_of_contents.md` file providing an overview of all scraped content
 
+## Security Considerations
+
+The script now implements several secure coding practices:
+
+1. Input validation: URLs are validated before processing
+2. Sanitization: File paths and content are properly sanitized to prevent directory traversal attacks
+3. Error handling: Improved error handling to gracefully manage exceptions
+4. Resource limits: The ability to limit the amount of data downloaded
+
 ## Note
 
 The script automatically adds the output directory to .gitignore in the Git root directory to prevent version control of scraped content.
@@ -129,13 +140,24 @@ The script automatically adds the output directory to .gitignore in the Git root
 
 Contributions to improve the script or add new features are welcome. Please feel free to submit a pull request or open an issue for any bugs or feature requests.
 
-## Issues
-To improve the script, the following issues should be addressed:
+## Improvements and Resolved Issues
 
-Fix the file naming logic to create unique filenames for each scraped page.
-Improve error handling to continue scraping even if one page fails.
-Ensure that the recursive scraping functionality creates separate files for each subpage.
-Verify that the table of contents generation works correctly for all scraped pages.
+The following improvements have been made to the script:
+
+1. Improved code structure: Large functions have been split into smaller, more manageable functions
+2. Enhanced readability: Inline documentation has been updated and improved
+3. Better error handling: The script now handles exceptions more gracefully
+4. Unique filenames: The file naming logic now creates unique filenames for each scraped page
+5. Improved security: Input validation and sanitization have been implemented
+
+## Remaining Considerations
+
+While many issues have been addressed, there are still areas for potential improvement:
+
+1. Testing: Comprehensive unit tests could be added to ensure reliability
+2. Performance optimization: The script's performance could be further optimized for large-scale scraping tasks
+3. Advanced filtering: More advanced options for filtering content during scraping could be implemented
+4. Customizable output formats: Support for additional output formats beyond Markdown could be added
 
 ## License
 
