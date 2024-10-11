@@ -1,0 +1,422 @@
+Original page: https://tamagui.dev/docs/guides/expo
+
+#  Expo Guide
+
+We've created a new template repo for starting an Expo Router based app based
+on the Expo 3 starter repo.
+
+This template requires Yarn 4.4.0 or greater. You can set yarn to the latest
+version by running `yarn set version stable`.
+
+    
+    
+    ![](/logos/yarn.svg)yarn
+    
+    ![](/logos/npm.svg)npm
+    
+    ![](/logos/bun.svg)bun
+    
+    ![](/logos/pnpm.svg)pnpm
+    
+    yarn create tamagui@latest --template expo-router
+
+There are also [pre-made community Expo starters](/community).
+
+## Install
+
+Use this guide to set up Tamagui with Expo Native and Web.
+
+To support dark mode, update your `app.json` to `app.config.ts` and set
+`userInterfaceStyle` to `"automatic"`.
+
+Native
+
+Create a new [Expo ](https://docs.expo.dev/get-started/create-a-
+project/#initialize-a-new-project) project:
+
+    
+    
+    ![](/logos/yarn.svg)yarn
+    
+    ![](/logos/npm.svg)npm
+    
+    ![](/logos/bun.svg)bun
+    
+    ![](/logos/pnpm.svg)pnpm
+    
+    yarn dlx create-expo-app -t expo-template-blank-typescript
+
+This guide assumes Expo is configured with TypeScript support.
+
+  * The following steps are optional but useful for many apps, they enable the optimizing compiler, reanimated, as well as using `process.env.XYZ`for environment variables.
+
+Add `@tamagui/babel-plugin`:
+
+    
+    
+    ![](/logos/yarn.svg)yarn
+    
+    ![](/logos/npm.svg)npm
+    
+    ![](/logos/bun.svg)bun
+    
+    ![](/logos/pnpm.svg)pnpm
+    
+    yarn add @tamagui/babel-plugin
+
+Update your `babel.config.js` to include the optional `@tamagui/babel-plugin`:
+
+    
+    
+    babel.config.js
+    
+    module.exports = function (api) {
+    
+    
+      api.cache(true)
+    
+    
+      return {
+    
+    
+        presets: ['babel-preset-expo'],
+    
+    
+        plugins: [
+    
+    
+          [
+    
+    
+            '@tamagui/babel-plugin',
+    
+    
+            {
+    
+    
+              components: ['tamagui'],
+    
+    
+              config: './tamagui.config.ts',
+    
+    
+              logTimings: true,
+    
+    
+              disableExtraction: process.env.NODE_ENV === 'development',
+    
+    
+            },
+    
+    
+          ],
+    
+    
+    
+    
+    
+          // NOTE: this is only necessary if you are using reanimated for animations
+    
+    
+          'react-native-reanimated/plugin',
+    
+    
+        ],
+    
+    
+      }
+    
+    
+    }
+    
+    
+    
+    
+
+If you're using a monorepo you probably want to use [this Metro
+configuration](/docs/guides/metro#native).
+
+Expo Router / Web
+
+  * First, follow the [Metro configuration guide](/docs/guides/metro#web-support) to enable web support.
+
+Add `@tamagui/config/v3` and `tamagui` to your package.json and install them.
+Then add a `tamagui.config.ts`:
+
+    
+    
+    tamagui.config.ts
+    
+    import { config } from '@tamagui/config/v3'
+    
+    
+    import { createTamagui } from 'tamagui'
+    
+    
+    
+    
+    
+    export const tamaguiConfig = createTamagui(config)
+    
+    
+    
+    
+    
+    export default tamaguiConfig
+    
+    
+    
+    
+    
+    export type Conf = typeof tamaguiConfig
+    
+    
+    
+    
+    
+    declare module 'tamagui' {
+    
+    
+      interface TamaguiCustomConfig extends Conf {}
+    
+    
+    }
+    
+
+Then update `app/_layout.tsx`:
+
+    
+    
+    app/_layout.tsx
+    
+    import '../tamagui-web.css'
+    
+    
+    
+    
+    
+    import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
+    
+    
+    import { Stack } from 'expo-router'
+    
+    
+    import { useColorScheme } from 'react-native'
+    
+    
+    import { TamaguiProvider } from 'tamagui'
+    
+    
+    
+    
+    
+    import { tamaguiConfig } from '../tamagui.config'
+    
+    
+    
+    
+    
+    export default function RootLayout() {
+    
+    
+      const colorScheme = useColorScheme()
+    
+    
+    
+    
+    
+      return (
+    
+    
+        // add this
+    
+    
+        <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme!}>
+    
+    
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    
+    
+            <Stack>
+    
+    
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    
+    
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+    
+    
+            </Stack>
+    
+    
+          </ThemeProvider>
+    
+    
+        </TamaguiProvider>
+    
+    
+      )
+    
+    
+    }
+    
+
+Show less
+
+Setup Tamagui
+
+From here on out you can follow the [Installation](/docs/intro/installation)
+and [Configuration](/docs/core/configuration) docs.
+
+## Loading fonts
+
+Install the `expo-font` package:
+
+    
+    
+    ![](/logos/yarn.svg)yarn
+    
+    ![](/logos/npm.svg)npm
+    
+    ![](/logos/bun.svg)bun
+    
+    ![](/logos/pnpm.svg)pnpm
+    
+    yarn dlx expo install expo-font
+
+Load your fonts for React Native to recognize them. There are several ways to
+do this:
+
+Tamagui
+
+Expo Google Fonts
+
+Using the `@tamagui/font-inter` package which is a pre-configured version of
+the Inter font that works with Tamagui:
+
+Import the `useFonts` hook and load the fonts:
+
+    
+    
+    App.tsx
+    
+    import { useFonts } from 'expo-font'
+    
+    
+    
+    
+    
+    function App() {
+    
+    
+      const [loaded] = useFonts({
+    
+    
+        Inter: require('@tamagui/font-inter/otf/Inter-Medium.otf'),
+    
+    
+        InterBold: require('@tamagui/font-inter/otf/Inter-Bold.otf'),
+    
+    
+      })
+    
+    
+    
+    
+    
+      useEffect(() => {
+    
+    
+        if (loaded) {
+    
+    
+          // can hide splash screen here
+    
+    
+        }
+    
+    
+      }, [loaded])
+    
+    
+    
+    
+    
+      if (!loaded) {
+    
+    
+        return null
+    
+    
+      }
+    
+    
+    
+    
+    
+      return <MyApp />
+    
+    
+    }
+    
+
+For more information on loading fonts in Expo, see the [Expo documentation
+](https://docs.expo.dev/develop/user-interface/fonts/).
+
+## First time starting Expo
+
+The first time running your project with Tamagui, be sure to clear the cache:
+
+    
+    
+    ![](/logos/yarn.svg)yarn
+    
+    ![](/logos/npm.svg)npm
+    
+    ![](/logos/bun.svg)bun
+    
+    ![](/logos/pnpm.svg)pnpm
+    
+    yarn dlx expo start -c
+
+Your `package.json` scripts should look something like this:
+
+    
+    
+    package.json
+    
+    {
+    
+    
+      "scripts": {
+    
+    
+        "start-native": "expo start -c",
+    
+    
+        "start-web": "expo start -c",
+    
+    
+        "android": "yarn expo run:android",
+    
+    
+        "ios": "yarn expo run:ios",
+    
+    
+        "web": "expo start --web"
+    
+    
+      }
+    
+    
+    }
+    
+
+#### Quick nav
+
+[PreviousNext.js](/docs/guides/next-js)[NextVite](/docs/guides/vite)
+
+[Edit this page on
+GitHub.](https://github.com/tamagui/tamagui/edit/master/code/tamagui.dev/data/docs/guides/expo.mdx
+"Edit this page on GitHub.")
+

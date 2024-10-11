@@ -1,0 +1,67 @@
+Original page: https://tamagui.dev/docs/intro/introduction
+
+# Introduction
+
+Tamagui makes styling React easy and fast on web, Android, and iOS. It focuses
+on platform-native output, with an optional optimizing compiler that
+significantly improves your app or site performance.
+
+Tamagui is three things:
+
+  * [`@tamagui/core`](/docs/core/introduction) is a style library that expands on the React Native style API with many features from CSS - all without any external dependency except for React.
+  * [`@tamagui/static`](/docs/intro/compiler-install) is an optimizing compiler that [significantly improves performance](/docs/intro/benchmarks) by hoisting objects and CSS at build-time, leaving behind flatter React trees.
+  * [`tamagui`](/docs/components/stacks) is a large universal component kit in styled and unstyled forms.
+
+#### Quick start
+
+Choose from a few starters:
+
+`npm create tamagui@latest`Copy
+
+#### [InstallSet up an app.](/docs/intro/installation)
+
+#### Highlights
+
+  * Core only has one dependency - React - but supports the full React Native View and Text API, a superset of the React Native Style API, styled(), powerful hooks, and the typed design system helpers in ~28Kb on web.
+
+  * A smart, partial-evaluating compiler gives 0-runtime performance with the ergonomics of writing your code however you want - even inline, logic-filled code is optimized.
+
+  * Every feature works at runtime and compile-time, so none of the usual limits of 0-runtime libraries, while optionally getting the same great performance.
+
+  * useTheme and useMedia hooks with signal-like granularity and dirty tracking.
+
+  * Unstyled and styled versions of all components.
+
+wwwwwwwwwwwwwwwwwww
+
+## Community
+
+We're excited to see the community adopt Tamagui, raise issues, and provide
+feedback. Whether it's a feature request, bug report, or a project to
+showcase, please get involved!
+
+  * [Discord ](https://discord.gg/4qh6tdcVDa)
+  * [Twitter ](https://twitter.com/tamagui_js)
+  * [GitHub Discussions ](https://github.com/tamagui/tamagui/discussions)
+  * [GitHub ](https://github.com/tamagui/tamagui)
+
+wwwwwwwwwwwwwwwwwww
+
+## Credits
+
+A big thanks to:
+
+  * [Stitches ](https://stitches.dev) for the variants pattern.
+  * [JSXStyle ](https://github.com/jsxstyle/jsxstyle) for providing the original version of the compiler.
+  * [Modulz ](https://github.com/modulz) for Radix of which we've adopted many APIs, and for the initial structure for this website.
+  * [Moti ](https://moti.fyi) for the foundation of the reanimated driver.
+  * [Framer Motion ](https://github.com/framer/motion) for the AnimatePresence functionality.
+
+#### Quick nav
+
+[NextInstallation](/docs/intro/installation)
+
+[Edit this page on
+GitHub.](https://github.com/tamagui/tamagui/edit/master/code/tamagui.dev/data/docs/intro/introduction.mdx
+"Edit this page on GitHub.")
+

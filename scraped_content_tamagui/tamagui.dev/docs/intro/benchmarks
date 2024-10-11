@@ -1,0 +1,211 @@
+Original page: https://tamagui.dev/docs/intro/benchmarks
+
+# Benchmarks
+
+Tamagui compares well to the fastest libraries at runtime, and the compiler
+further optimizes your styled components, flattening them down and hoisting
+objects out of your rendering loop (and extracting CSS on the web).
+
+With the compiler on Tamagui will output near optimal React code despite
+giving many nice shorthand style props. It has a higher impact on web, but
+with initial support for flattening more dynamic styled components now landed,
+Tamagui does flatten a very high % of your code on all platforms. We look
+forward to updating our benchmarks as we expect we've improved in a number of
+areas.
+
+It's important to note that benchmarks never show a complete picture and that
+these benchmarks are not being actively updated as of early 2023. Our plan is
+to build out a better benchmarking setup to update this page.
+
+## React Native
+
+In [this benchmark ](https://github.com/tamagui/benchmarks) Tamagui is within
+10% of the speed of vanilla React Native, even when using nearly all of
+Tamagui's features. We render list of 28 items with a few sections, text and
+images. Average of 5 runs on a Apple M2 Air:
+
+Tamagui
+
+108ms
+
+React Native
+
+106ms
+
+NativeBase
+
+247ms
+
+Running Tamagui without the compiler averages `125ms` or ~12% slower. Note
+that the compiler is much more effective on the web as it turns many more
+props into CSS and both bundle size and render performance are more important.
+
+## Web
+
+We forked and ran a few more [benchmarks
+](https://github.com/tamagui/tamagui/tree/24ac758bbe5d6ff2f67f25071df4286e0594f578/starters/benchmark)
+for the web.
+
+**Legend:** RNW = react-native-web, SC = styled-components
+
+Simple component
+
+Timing rendering a simple custom component.
+
+Tamagui
+
+0.018ms
+
+RNW
+
+0.057ms
+
+Dripsy
+
+0.042ms
+
+NativeBase
+
+0.67ms
+
+Stitches
+
+0.023ms
+
+Emotion
+
+0.041ms
+
+Updating variants
+
+Changing variants is fast at runtime, and even faster when compiled:
+
+Tamagui
+
+0.02ms
+
+RNW
+
+0.063ms
+
+Dripsy
+
+0.108ms
+
+NativeBase
+
+0.73ms
+
+Stitches
+
+0.037ms
+
+Emotion
+
+0.069ms
+
+SC
+
+0.081ms
+
+Since styled-components and Emotion don't offer a first-class variant API,
+this was done via prop interpolation.
+
+Updating inline styles
+
+Tamagui has a big advantage for inline styles, it's the only library to
+compile them and flatten the tree.
+
+Tamagui
+
+0.025ms
+
+RNW
+
+0.06ms
+
+Dripsy
+
+0.266ms
+
+NativeBase
+
+0.8ms
+
+Stitches
+
+0.027ms
+
+Emotion
+
+0.047ms
+
+wwwwwwwwwwwwwwwwwww
+
+Fully dynamic styles
+
+These benchmarks don't benefit from the compiler. The React Native API surface
+is much more feature-rich than DOM.
+
+Tamagui
+
+31ms
+
+Dripsy
+
+57.5ms
+
+Stitches
+
+14.5ms
+
+Emotion
+
+49.01ms
+
+  * NativeBase - couldn't get running
+
+Note: This test was taken from the [styled-components benchmarks
+](https://github.com/styled-components/styled-
+components/tree/main/packages/benchmarks).
+
+Mounting deep tree
+
+In this test, we mount a tree with many nested nodes.
+
+Tamagui
+
+18.61ms
+
+Dripsy
+
+44.43ms
+
+Stitches
+
+8.32ms
+
+Emotion
+
+42.49ms
+
+SC
+
+51.4ms
+
+  * SC - Styled Components
+  * NativeBase - couldn't get running
+
+Note: This test was taken from the [styled-components benchmarks
+](https://github.com/styled-components/styled-
+components/tree/main/packages/benchmarks).
+
+#### Quick nav
+
+[PreviousInstallation](/docs/intro/compiler-install)[NextCreating Custom
+Themes](/docs/guides/theme-builder)
+
+[Edit this page on
+GitHub.](https://github.com/tamagui/tamagui/edit/master/code/tamagui.dev/data/docs/intro/benchmarks.mdx
+"Edit this page on GitHub.")
+
