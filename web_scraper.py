@@ -37,6 +37,7 @@ import argparse
 from urllib.parse import urlparse, urljoin
 import logging
 import subprocess
+import re
 
 def find_git_root(path):
     """
@@ -56,12 +57,27 @@ def find_git_root(path):
     except subprocess.CalledProcessError:
         return None
 
-def update_gitignore(output_dir):
+def escape_gitignore_pattern(pattern):
+    """
+    Escape special characters in a gitignore pattern.
+
+    Args:
+        pattern (str): The gitignore pattern to escape
+
+    Returns:
+        str: The escaped gitignore pattern
+    """
+    # Escape special characters: #, !, [, ]
+    escaped_pattern = re.sub(r'([#!\[\]])', r'\\\1', pattern)
+    return escaped_pattern
+
+def update_gitignore(output_dir, negate=False):
     """
     Update .gitignore file in the Git root directory to include the output directory.
     
     Args:
         output_dir (str): The directory where scraped content is saved
+        negate (bool): Whether to negate the pattern (default: False)
     """
     current_dir = os.path.abspath(os.getcwd())
     git_root = find_git_root(current_dir)
@@ -72,7 +88,10 @@ def update_gitignore(output_dir):
 
     gitignore_path = os.path.join(git_root, '.gitignore')
     relative_output_dir = os.path.relpath(output_dir, git_root)
-    gitignore_entry = f"{relative_output_dir}/"
+    gitignore_entry = escape_gitignore_pattern(f"{relative_output_dir}/")
+    
+    if negate:
+        gitignore_entry = f"!{gitignore_entry}"
 
     # Check if .gitignore exists, if not create it
     if not os.path.exists(gitignore_path):
@@ -116,17 +135,22 @@ class WebsiteSpider(scrapy.Spider):
         self.h2t.ignore_links = ignore_links
         self.sitemap = []
         self.subdir = subdir
+        self.original_url_path = urlparse(start_urls[0]).path
 
         # Ensure output directory exists
         os.makedirs(self.output_dir, exist_ok=True)
 
     def parse(self, response):
         try:
-            # Check if the current URL is within the specified subdirectory
-            if self.subdir:
-                current_path = urlparse(response.url).path
-                if not current_path.startswith(self.subdir):
-                    return
+            current_path = urlparse(response.url).path
+            
+            # Check if the current URL is within the original URL path or its subdirectories
+            if not current_path.startswith(self.original_url_path):
+                return
+
+            # Check if the current URL is within the specified subdirectory (if any)
+            if self.subdir and not current_path.startswith(self.subdir):
+                return
 
             # Extract main content
             main_content = response.css('main').get() or response.css('article').get() or response.css('body').get()
@@ -139,7 +163,7 @@ class WebsiteSpider(scrapy.Spider):
 
             # Create file path that mirrors the source site directory structure
             domain = urlparse(response.url).netloc
-            url_path = urlparse(response.url).path
+            url_path = current_path
             if url_path.endswith('/') or url_path == '':
                 url_path += 'index'
             
@@ -158,17 +182,13 @@ class WebsiteSpider(scrapy.Spider):
             self.sitemap.append((domain, title, response.url, file_path))
             self.logger.info(f"Scraped: {response.url} -> {file_path}")
 
-            # Follow links within the same domain and subdirectory (if specified)
+            # Follow links within the same domain and original URL path
             if not self.h2t.ignore_links:
                 for href in response.css('a::attr(href)').getall():
                     url = urljoin(response.url, href)
                     parsed_url = urlparse(url)
-                    if parsed_url.netloc == domain:
-                        if self.subdir:
-                            if parsed_url.path.startswith(self.subdir):
-                                yield scrapy.Request(url, callback=self.parse)
-                        else:
-                            yield scrapy.Request(url, callback=self.parse)
+                    if parsed_url.netloc == domain and parsed_url.path.startswith(self.original_url_path):
+                        yield scrapy.Request(url, callback=self.parse)
 
         except Exception as e:
             self.logger.error(f"Error scraping {response.url}: {str(e)}")
