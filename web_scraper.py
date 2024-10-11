@@ -4,12 +4,12 @@ Web Scraper Script
 This script is designed to scrape websites and convert their content to Markdown format.
 It uses Scrapy for web crawling and html2text for HTML to Markdown conversion.
 
-The script performs the following main tasks:
-1. Crawls specified websites, either a single URL or multiple URLs from a file
+Main features:
+1. Crawls specified websites (single URL or multiple URLs from a file)
 2. Converts HTML content to Markdown
 3. Saves each page as a separate Markdown file, maintaining the original site structure
 4. Creates a table of contents for the scraped content
-5. Adds the output directory to .gitignore in the Git root directory to prevent version control of scraped content
+5. Adds the output directory to .gitignore in the Git root directory
 
 Usage:
     python web_scraper.py -u <url> -o <output_dir> [options]
@@ -23,11 +23,15 @@ Options:
     -a, --user-agent AGENT    Set a custom user agent string
     -v, --verbose             Increase output verbosity
     -s, --subdir SUBDIR       Limit scraping to a specific subdirectory
-    --data-download-limit LIMIT Limit the amount of data to download (e.g., 4GB).  Beta feature.  Doesn't work yet.
+    --data-download-limit LIMIT Limit the amount of data to download (e.g., 4GB)
+                              Note: This is a beta feature and may not work as expected
 
 Dependencies:
     - scrapy
     - html2text
+
+This script is designed to be flexible and can be used for various web scraping tasks,
+including documentation retrieval, content archiving, and offline reading preparation.
 """
 
 import scrapy
@@ -44,6 +48,9 @@ import sys
 def find_git_root(path):
     """
     Find the root directory of the Git repository.
+    
+    This function searches for the Git root directory starting from the given path
+    and moving up the directory tree.
     
     Args:
         path (str): The starting path to search from
@@ -63,6 +70,9 @@ def escape_gitignore_pattern(pattern):
     """
     Escape special characters in a gitignore pattern.
 
+    This function ensures that special characters in the gitignore pattern
+    are properly escaped to maintain their literal meaning.
+
     Args:
         pattern (str): The gitignore pattern to escape
 
@@ -76,6 +86,10 @@ def escape_gitignore_pattern(pattern):
 def update_gitignore(output_dir, negate=False):
     """
     Update .gitignore file in the Git root directory to include the output directory.
+    
+    This function adds the specified output directory to the .gitignore file
+    in the Git root directory, preventing the scraped content from being
+    tracked by version control.
     
     Args:
         output_dir (str): The directory where scraped content is saved
@@ -116,6 +130,9 @@ def read_urls_from_file(file_path):
     """
     Read URLs from a file, one URL per line.
 
+    This function reads a text file containing URLs and returns them as a list.
+    Empty lines and leading/trailing whitespace are ignored.
+
     Args:
         file_path (str): Path to the file containing URLs
 
@@ -129,11 +146,17 @@ def parse_size(size):
     """
     Parse a human-readable size string (e.g., '4GB') to bytes.
 
+    This function converts a human-readable file size string to its
+    equivalent value in bytes. It supports units B, KB, MB, GB, and TB.
+
     Args:
         size (str): A string representing a file size (e.g., '4GB', '100MB')
 
     Returns:
         int: The size in bytes
+
+    Raises:
+        ValueError: If the input string format is invalid
     """
     units = {
         'B': 1,
@@ -233,6 +256,13 @@ class WebsiteSpider(scrapy.Spider):
         self.create_table_of_contents()
 
     def create_table_of_contents(self):
+        """
+        Create a table of contents for the scraped content.
+
+        This method generates a Markdown file containing a hierarchical
+        table of contents for all scraped pages, organized by domain
+        and file structure.
+        """
         toc_content = """# Table of Contents
 
 This table of contents provides an overview of all the pages scraped from the website(s). It is organized hierarchically to reflect the structure of the original site(s). You can use this table of contents to:
@@ -277,7 +307,7 @@ def main():
     parser.add_argument('-a', '--user-agent', default='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36', help='Set a custom user agent string')
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity')
     parser.add_argument('-s', '--subdir', help='Limit scraping to a specific subdirectory')
-    parser.add_argument('--data-download-limit', help='Limit the amount of data to download (e.g., 4GB).  Beta feature, doesnt work.')
+    parser.add_argument('--data-download-limit', help='Limit the amount of data to download (e.g., 4GB). Note: This is a beta feature.')
     args = parser.parse_args()
 
     # Set up logging
