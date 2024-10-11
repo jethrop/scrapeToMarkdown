@@ -23,6 +23,7 @@ Options:
     -a, --user-agent AGENT    Set a custom user agent string
     -v, --verbose             Increase output verbosity
     -s, --subdir SUBDIR       Limit scraping to a specific subdirectory
+    --data-download-limit LIMIT Limit the amount of data to download (e.g., 4GB).  Beta feature.  Doesn't work yet.
 
 Dependencies:
     - scrapy
@@ -38,6 +39,7 @@ from urllib.parse import urlparse, urljoin
 import logging
 import subprocess
 import re
+import sys
 
 def find_git_root(path):
     """
@@ -123,10 +125,38 @@ def read_urls_from_file(file_path):
     with open(file_path, 'r') as file:
         return [line.strip() for line in file if line.strip()]
 
+def parse_size(size):
+    """
+    Parse a human-readable size string (e.g., '4GB') to bytes.
+
+    Args:
+        size (str): A string representing a file size (e.g., '4GB', '100MB')
+
+    Returns:
+        int: The size in bytes
+    """
+    units = {
+        'B': 1,
+        'KB': 1024,
+        'MB': 1024 ** 2,
+        'GB': 1024 ** 3,
+        'TB': 1024 ** 4
+    }
+    size = size.upper()
+    print(f"Debug: Input size string: {size}")  # Debug print
+    match = re.match(r'^(\d+(\.\d+)?)\s*([B|KB|MB|GB|TB])$', size)
+    print(f"Debug: Regex match result: {match}")  # Debug print
+    if not match:
+        raise ValueError("Invalid size format. Use something like '4GB' or '100MB'.")
+    
+    number = float(match.group(1))
+    unit = match.group(3)
+    return int(number * units[unit])
+
 class WebsiteSpider(scrapy.Spider):
     name = 'website_spider'
 
-    def __init__(self, start_urls, output_dir, ignore_links=False, subdir=None, *args, **kwargs):
+    def __init__(self, start_urls, output_dir, ignore_links=False, subdir=None, data_limit=None, *args, **kwargs):
         super(WebsiteSpider, self).__init__(*args, **kwargs)
         self.start_urls = start_urls
         self.allowed_domains = [urlparse(url).netloc for url in start_urls]
@@ -136,8 +166,14 @@ class WebsiteSpider(scrapy.Spider):
         self.sitemap = []
         self.subdir = subdir
         self.original_url_path = urlparse(start_urls[0]).path
+        self.data_limit = data_limit
+        self.total_data_downloaded = 0
 
     def parse(self, response):
+        if self.data_limit and self.total_data_downloaded >= self.data_limit:
+            self.logger.info(f"Data download limit reached. Stopping crawl.")
+            return
+
         try:
             current_path = urlparse(response.url).path
             
@@ -148,6 +184,9 @@ class WebsiteSpider(scrapy.Spider):
             # Check if the current URL is within the specified subdirectory (if any)
             if self.subdir and not current_path.startswith(self.subdir):
                 return
+
+            # Update total data downloaded
+            self.total_data_downloaded += len(response.body)
 
             # Extract main content
             main_content = response.css('main').get() or response.css('article').get() or response.css('body').get()
@@ -180,7 +219,7 @@ class WebsiteSpider(scrapy.Spider):
             self.logger.info(f"Scraped: {response.url} -> {file_path}")
 
             # Follow links within the same domain and original URL path
-            if not self.h2t.ignore_links:
+            if not self.h2t.ignore_links and (not self.data_limit or self.total_data_downloaded < self.data_limit):
                 for href in response.css('a::attr(href)').getall():
                     url = urljoin(response.url, href)
                     parsed_url = urlparse(url)
@@ -238,6 +277,7 @@ def main():
     parser.add_argument('-a', '--user-agent', default='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36', help='Set a custom user agent string')
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity')
     parser.add_argument('-s', '--subdir', help='Limit scraping to a specific subdirectory')
+    parser.add_argument('--data-download-limit', help='Limit the amount of data to download (e.g., 4GB).  Beta feature, doesnt work.')
     args = parser.parse_args()
 
     # Set up logging
@@ -257,12 +297,21 @@ def main():
     else:
         start_urls = [args.url]
 
+    # Parse data download limit
+    data_limit = None
+    if args.data_download_limit:
+        try:
+            data_limit = parse_size(args.data_download_limit)
+        except ValueError as e:
+            print(f"Error: {str(e)}", file=sys.stderr)
+            sys.exit(1)
+
     process = CrawlerProcess({
         'USER_AGENT': args.user_agent,
         'LOG_LEVEL': 'DEBUG' if args.verbose else 'INFO'
     })
 
-    process.crawl(WebsiteSpider, start_urls=start_urls, output_dir=output_dir, ignore_links=args.ignore_links, subdir=args.subdir)
+    process.crawl(WebsiteSpider, start_urls=start_urls, output_dir=output_dir, ignore_links=args.ignore_links, subdir=args.subdir, data_limit=data_limit)
     process.start()
 
 if __name__ == "__main__":
