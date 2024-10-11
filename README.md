@@ -15,6 +15,7 @@ I wrote this script to convert online docs information to llm friendly local inf
 - Automatically updates .gitignore to prevent version control of scraped content
 - Configurable options via command line flags
 - Ability to limit scraping to specific subdirectories
+- Beta feature to limit the amount of data downloaded
 
 ## Requirements
 
@@ -55,6 +56,7 @@ python web_scraper.py -f <url_file> -o <output_dir> [options]
 - `-a, --user-agent AGENT`: Set a custom user agent string
 - `-v, --verbose`: Increase output verbosity
 - `-s, --subdir SUBDIR`: Limit scraping to a specific subdirectory
+- `--data-download-limit LIMIT`: Limit the amount of data to download (e.g., 4GB). Beta feature, currently not functional.
 
 ### Examples
 
@@ -98,11 +100,18 @@ Scrape multiple websites from a file, but limit each to a specific subdirectory:
 python web_scraper.py -f urls.txt -o output -s /api/v1
 ```
 
+Attempt to limit the amount of data downloaded (beta feature):
+```
+python web_scraper.py -u https://example.com -o output --data-download-limit 4GB
+```
+
 ## Behavior
 
 By default, the script will only scrape pages that are subpages of the original URL. For example, if you scrape `https://example.com/docs`, it will only scrape pages under the `/docs` directory and won't scrape pages like `https://example.com/blog`.
 
 When you use the `-s` or `--subdir` option, the script will limit the scraping to the specified subdirectory for all input URLs. This is useful when you want to scrape only a portion of a large website or maintain consistent behavior across multiple websites.
+
+The `--data-download-limit` option is a beta feature that attempts to limit the total amount of data downloaded. However, this feature is not fully functional in the current version.
 
 ## Output
 
