@@ -12,8 +12,8 @@ The script performs the following main tasks:
 5. Adds the output directory to .gitignore in the Git root directory to prevent version control of scraped content
 
 Usage:
-    python web_scraper.py -u <url> -o <output_dir>
-    python web_scraper.py -f <url_file> -o <output_dir>
+    python web_scraper.py -u <url> -o <output_dir> [options]
+    python web_scraper.py -f <url_file> -o <output_dir> [options]
 
 Options:
     -u, --url URL             The URL to scrape
@@ -22,6 +22,7 @@ Options:
     -i, --ignore-links        Ignore links in the HTML when converting to Markdown
     -a, --user-agent AGENT    Set a custom user agent string
     -v, --verbose             Increase output verbosity
+    -s, --subdir SUBDIR       Limit scraping to a specific subdirectory
 
 Dependencies:
     - scrapy
@@ -106,7 +107,7 @@ def read_urls_from_file(file_path):
 class WebsiteSpider(scrapy.Spider):
     name = 'website_spider'
 
-    def __init__(self, start_urls, output_dir, ignore_links=False, *args, **kwargs):
+    def __init__(self, start_urls, output_dir, ignore_links=False, subdir=None, *args, **kwargs):
         super(WebsiteSpider, self).__init__(*args, **kwargs)
         self.start_urls = start_urls
         self.allowed_domains = [urlparse(url).netloc for url in start_urls]
@@ -114,12 +115,19 @@ class WebsiteSpider(scrapy.Spider):
         self.h2t = html2text.HTML2Text()
         self.h2t.ignore_links = ignore_links
         self.sitemap = []
+        self.subdir = subdir
 
         # Ensure output directory exists
         os.makedirs(self.output_dir, exist_ok=True)
 
     def parse(self, response):
         try:
+            # Check if the current URL is within the specified subdirectory
+            if self.subdir:
+                current_path = urlparse(response.url).path
+                if not current_path.startswith(self.subdir):
+                    return
+
             # Extract main content
             main_content = response.css('main').get() or response.css('article').get() or response.css('body').get()
 
@@ -150,12 +158,17 @@ class WebsiteSpider(scrapy.Spider):
             self.sitemap.append((domain, title, response.url, file_path))
             self.logger.info(f"Scraped: {response.url} -> {file_path}")
 
-            # Follow links within the same domain
+            # Follow links within the same domain and subdirectory (if specified)
             if not self.h2t.ignore_links:
                 for href in response.css('a::attr(href)').getall():
                     url = urljoin(response.url, href)
-                    if urlparse(url).netloc == domain:
-                        yield scrapy.Request(url, callback=self.parse)
+                    parsed_url = urlparse(url)
+                    if parsed_url.netloc == domain:
+                        if self.subdir:
+                            if parsed_url.path.startswith(self.subdir):
+                                yield scrapy.Request(url, callback=self.parse)
+                        else:
+                            yield scrapy.Request(url, callback=self.parse)
 
         except Exception as e:
             self.logger.error(f"Error scraping {response.url}: {str(e)}")
@@ -206,6 +219,7 @@ def main():
     parser.add_argument('-i', '--ignore-links', action='store_true', help='Ignore links in the HTML when converting to Markdown')
     parser.add_argument('-a', '--user-agent', default='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36', help='Set a custom user agent string')
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity')
+    parser.add_argument('-s', '--subdir', help='Limit scraping to a specific subdirectory')
     args = parser.parse_args()
 
     # Set up logging
@@ -230,7 +244,7 @@ def main():
         'LOG_LEVEL': 'DEBUG' if args.verbose else 'INFO'
     })
 
-    process.crawl(WebsiteSpider, start_urls=start_urls, output_dir=output_dir, ignore_links=args.ignore_links)
+    process.crawl(WebsiteSpider, start_urls=start_urls, output_dir=output_dir, ignore_links=args.ignore_links, subdir=args.subdir)
     process.start()
 
 if __name__ == "__main__":

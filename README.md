@@ -10,6 +10,7 @@ This project contains a Python script that scrapes websites and converts their c
 - Creates a table of contents for the scraped content
 - Automatically updates .gitignore to prevent version control of scraped content
 - Configurable options via command line flags
+- Ability to limit scraping to specific subdirectories
 
 ## Requirements
 
@@ -47,6 +48,7 @@ python web_scraper.py -f <url_file> -o <output_dir> [options]
 - `-i, --ignore-links`: Ignore links in the HTML when converting to Markdown
 - `-a, --user-agent AGENT`: Set a custom user agent string
 - `-v, --verbose`: Increase output verbosity
+- `-s, --subdir SUBDIR`: Limit scraping to a specific subdirectory
 
 ### Examples
 
@@ -69,6 +71,32 @@ Scrape a website with a custom user agent and verbose output:
 ```
 python web_scraper.py -u https://example.com -o output -a "MyBot/1.0" -v
 ```
+
+Scrape only the '/docs' subdirectory of a website:
+```
+python web_scraper.py -u https://example.com -o output -s /docs
+```
+
+Scrape only the '/blog' subdirectory and its subpages:
+```
+python web_scraper.py -u https://example.com -o output -s /blog
+```
+
+Scrape a specific subdirectory with verbose output and a custom user agent:
+```
+python web_scraper.py -u https://example.com -o output -s /products -v -a "CustomBot/2.0"
+```
+
+Scrape multiple websites from a file, but limit each to a specific subdirectory:
+```
+python web_scraper.py -f urls.txt -o output -s /api/v1
+```
+
+## Behavior
+
+By default, the script will only scrape pages that are subpages of the original URL. For example, if you scrape `https://example.com/docs`, it will only scrape pages under the `/docs` directory and won't scrape pages like `https://example.com/blog`.
+
+When you use the `-s` or `--subdir` option, the script will limit the scraping to the specified subdirectory for all input URLs. This is useful when you want to scrape only a portion of a large website or maintain consistent behavior across multiple websites.
 
 ## Output
 
