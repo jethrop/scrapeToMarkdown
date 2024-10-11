@@ -2,8 +2,6 @@
 
 This project contains a Python script that scrapes websites and converts their content to Markdown format. It's designed to be a flexible tool for creating local, searchable copies of websites or documentation in Markdown format.
 
-Most of this script and documentation was written by AI.  I originally wrote this as a tool to generate LLM friendly documentation.
-
 ## Features
 
 - Crawls specified websites (single URL or multiple URLs from a file)
@@ -17,8 +15,6 @@ Most of this script and documentation was written by AI.  I originally wrote thi
 ## Requirements
 
 - Python 3.x
-- scrapy
-- html2text
 
 ## Installation
 
@@ -28,10 +24,14 @@ Most of this script and documentation was written by AI.  I originally wrote thi
    cd <repository-directory>
    ```
 
-2. Install the required dependencies:
+2. Install the required dependencies using the provided requirements.txt file:
    ```
-   pip install scrapy html2text
+   pip install -r requirements.txt
    ```
+
+This will install the following dependencies:
+- scrapy
+- html2text
 
 ## Usage
 
