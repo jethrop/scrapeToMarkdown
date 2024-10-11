@@ -1,4 +1,4 @@
-# Web Scraper
+# Web Scraper to Markdown
 
 This Python script is designed to scrape websites and convert their content to Markdown format. It uses Scrapy for web crawling and html2text for HTML to Markdown conversion.
 
