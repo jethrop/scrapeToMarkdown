@@ -12,10 +12,16 @@ The script performs the following main tasks:
 5. Adds the output directory to .gitignore in the Git root directory to prevent version control of scraped content
 
 Usage:
-    python web_scraper.py <url_or_file> <output_dir>
+    python web_scraper.py -u <url> -o <output_dir>
+    python web_scraper.py -f <url_file> -o <output_dir>
 
-    <url_or_file>: The URL to scrape or a file containing URLs (one per line)
-    <output_dir>: The directory where the Markdown files will be saved
+Options:
+    -u, --url URL             The URL to scrape
+    -f, --file FILE           File containing URLs to scrape (one per line)
+    -o, --output OUTPUT_DIR   The directory to save the Markdown files
+    -i, --ignore-links        Ignore links in the HTML when converting to Markdown
+    -a, --user-agent AGENT    Set a custom user agent string
+    -v, --verbose             Increase output verbosity
 
 Dependencies:
     - scrapy
@@ -29,7 +35,6 @@ import os
 import argparse
 from urllib.parse import urlparse, urljoin
 import logging
-import time
 import subprocess
 
 def find_git_root(path):
@@ -101,13 +106,13 @@ def read_urls_from_file(file_path):
 class WebsiteSpider(scrapy.Spider):
     name = 'website_spider'
 
-    def __init__(self, start_urls, output_dir, *args, **kwargs):
+    def __init__(self, start_urls, output_dir, ignore_links=False, *args, **kwargs):
         super(WebsiteSpider, self).__init__(*args, **kwargs)
         self.start_urls = start_urls
         self.allowed_domains = [urlparse(url).netloc for url in start_urls]
         self.output_dir = os.path.abspath(output_dir)
         self.h2t = html2text.HTML2Text()
-        self.h2t.ignore_links = False
+        self.h2t.ignore_links = ignore_links
         self.sitemap = []
 
         # Ensure output directory exists
@@ -146,10 +151,11 @@ class WebsiteSpider(scrapy.Spider):
             self.logger.info(f"Scraped: {response.url} -> {file_path}")
 
             # Follow links within the same domain
-            for href in response.css('a::attr(href)').getall():
-                url = urljoin(response.url, href)
-                if urlparse(url).netloc == domain:
-                    yield scrapy.Request(url, callback=self.parse)
+            if not self.h2t.ignore_links:
+                for href in response.css('a::attr(href)').getall():
+                    url = urljoin(response.url, href)
+                    if urlparse(url).netloc == domain:
+                        yield scrapy.Request(url, callback=self.parse)
 
         except Exception as e:
             self.logger.error(f"Error scraping {response.url}: {str(e)}")
@@ -193,32 +199,38 @@ Each entry in the table of contents is a link to the corresponding Markdown file
 
 def main():
     parser = argparse.ArgumentParser(description='Scrape website(s) and convert to Markdown.')
-    parser.add_argument('url_or_file', help='The URL to scrape or a file containing URLs (one per line)')
-    parser.add_argument('output_dir', help='The directory to save the Markdown files')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-u', '--url', help='The URL to scrape')
+    group.add_argument('-f', '--file', help='File containing URLs to scrape (one per line)')
+    parser.add_argument('-o', '--output', required=True, help='The directory to save the Markdown files')
+    parser.add_argument('-i', '--ignore-links', action='store_true', help='Ignore links in the HTML when converting to Markdown')
+    parser.add_argument('-a', '--user-agent', default='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36', help='Set a custom user agent string')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity')
     args = parser.parse_args()
 
     # Set up logging
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
     # Ensure output directory exists
-    output_dir = os.path.abspath(args.output_dir)
+    output_dir = os.path.abspath(args.output)
     os.makedirs(output_dir, exist_ok=True)
 
     # Update .gitignore
     update_gitignore(output_dir)
 
     # Determine if input is a URL or a file
-    if os.path.isfile(args.url_or_file):
-        start_urls = read_urls_from_file(args.url_or_file)
+    if args.file:
+        start_urls = read_urls_from_file(args.file)
     else:
-        start_urls = [args.url_or_file]
+        start_urls = [args.url]
 
     process = CrawlerProcess({
-        'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'LOG_LEVEL': 'INFO'
+        'USER_AGENT': args.user_agent,
+        'LOG_LEVEL': 'DEBUG' if args.verbose else 'INFO'
     })
 
-    process.crawl(WebsiteSpider, start_urls=start_urls, output_dir=output_dir)
+    process.crawl(WebsiteSpider, start_urls=start_urls, output_dir=output_dir, ignore_links=args.ignore_links)
     process.start()
 
 if __name__ == "__main__":

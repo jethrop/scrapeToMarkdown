@@ -9,6 +9,7 @@ This project contains a Python script that scrapes websites and converts their c
 - Saves each page as a separate Markdown file, maintaining the original site structure
 - Creates a table of contents for the scraped content
 - Automatically updates .gitignore to prevent version control of scraped content
+- Configurable options via command line flags
 
 ## Requirements
 
@@ -31,25 +32,42 @@ This project contains a Python script that scrapes websites and converts their c
 
 ## Usage
 
-Run the script using the following command:
+Run the script using one of the following commands:
 
 ```
-python web_scraper.py <url_or_file> <output_dir>
+python web_scraper.py -u <url> -o <output_dir> [options]
+python web_scraper.py -f <url_file> -o <output_dir> [options]
 ```
 
-- `<url_or_file>`: The URL to scrape or a file containing URLs (one per line)
-- `<output_dir>`: The directory where the Markdown files will be saved
+### Options
+
+- `-u, --url URL`: The URL to scrape
+- `-f, --file FILE`: File containing URLs to scrape (one per line)
+- `-o, --output OUTPUT_DIR`: The directory to save the Markdown files (required)
+- `-i, --ignore-links`: Ignore links in the HTML when converting to Markdown
+- `-a, --user-agent AGENT`: Set a custom user agent string
+- `-v, --verbose`: Increase output verbosity
 
 ### Examples
 
 Scrape a single website:
 ```
-python web_scraper.py https://example.com output
+python web_scraper.py -u https://example.com -o output
 ```
 
 Scrape multiple websites listed in a file:
 ```
-python web_scraper.py urls.txt output
+python web_scraper.py -f urls.txt -o output
+```
+
+Scrape a website and ignore links:
+```
+python web_scraper.py -u https://example.com -o output -i
+```
+
+Scrape a website with a custom user agent and verbose output:
+```
+python web_scraper.py -u https://example.com -o output -a "MyBot/1.0" -v
 ```
 
 ## Output
