@@ -44,6 +44,7 @@ import logging
 import subprocess
 import re
 import sys
+import hashlib
 
 def find_git_root(path):
     """
@@ -226,7 +227,10 @@ class WebsiteSpider(scrapy.Spider):
             if url_path.endswith('/') or url_path == '':
                 url_path += 'index'
             
-            file_path = os.path.join(self.output_dir, domain, url_path.lstrip('/').replace('.html', '.md'))
+            # Generate a unique filename using a hash of the URL
+            url_hash = hashlib.md5(response.url.encode()).hexdigest()[:8]
+            file_name = f"{os.path.basename(url_path)}_{url_hash}.md"
+            file_path = os.path.join(self.output_dir, domain, os.path.dirname(url_path.lstrip('/')), file_name)
 
             # Ensure directory exists only when we're about to write a file
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
