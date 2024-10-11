@@ -2,6 +2,10 @@
 
 This project contains a Python script that scrapes websites and converts their content to Markdown format. It's designed to be a flexible tool for creating local, searchable copies of websites or documentation in Markdown format.
 
+The script uses Scrapy for web crawling and html2text for HTML to Markdown conversion. It can scrape a single URL or multiple URLs from a file. The scraped content is saved as separate Markdown files, maintaining the original site structure. Additionally, the script creates a table of contents for the scraped content and automatically updates .gitignore to prevent version control of scraped content.
+
+I wrote this script to convert online docs information to llm friendly local information.  Most of the script and docs were written with AI.
+
 ## Features
 
 - Crawls specified websites (single URL or multiple URLs from a file)
