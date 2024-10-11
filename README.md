@@ -129,6 +129,14 @@ The script automatically adds the output directory to .gitignore in the Git root
 
 Contributions to improve the script or add new features are welcome. Please feel free to submit a pull request or open an issue for any bugs or feature requests.
 
+## Issues
+To improve the script, the following issues should be addressed:
+
+Fix the file naming logic to create unique filenames for each scraped page.
+Improve error handling to continue scraping even if one page fails.
+Ensure that the recursive scraping functionality creates separate files for each subpage.
+Verify that the table of contents generation works correctly for all scraped pages.
+
 ## License
 
 [Specify the license here, e.g., MIT, GPL, etc.]
