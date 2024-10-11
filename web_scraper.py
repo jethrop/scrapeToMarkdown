@@ -137,9 +137,6 @@ class WebsiteSpider(scrapy.Spider):
         self.subdir = subdir
         self.original_url_path = urlparse(start_urls[0]).path
 
-        # Ensure output directory exists
-        os.makedirs(self.output_dir, exist_ok=True)
-
     def parse(self, response):
         try:
             current_path = urlparse(response.url).path
@@ -169,7 +166,7 @@ class WebsiteSpider(scrapy.Spider):
             
             file_path = os.path.join(self.output_dir, domain, url_path.lstrip('/').replace('.html', '.md'))
 
-            # Ensure directory exists
+            # Ensure directory exists only when we're about to write a file
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
             # Write content to file
@@ -227,6 +224,7 @@ Each entry in the table of contents is a link to the corresponding Markdown file
             toc_content += f"{indent}- [{title}]({relative_path})\n"
 
         toc_file_path = os.path.join(self.output_dir, 'table_of_contents.md')
+        os.makedirs(os.path.dirname(toc_file_path), exist_ok=True)
         with open(toc_file_path, 'w', encoding='utf-8') as f:
             f.write(toc_content)
 
