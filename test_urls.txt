@@ -1,3 +1,2 @@
-https://example.com
-https://www.python.org
-https://scrapy.org
+https://supabase.com/docs
+https://www.rabbitmq.com/docs
