@@ -2,6 +2,8 @@
 
 This project contains a Python script that scrapes websites and converts their content to Markdown format. It's designed to be a flexible tool for creating local, searchable copies of websites or documentation in Markdown format.
 
+Most of this script and documentation was written by AI.  I originally wrote this as a tool to generate LLM friendly documentation.
+
 ## Features
 
 - Crawls specified websites (single URL or multiple URLs from a file)
