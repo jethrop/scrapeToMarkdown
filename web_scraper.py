@@ -1,20 +1,20 @@
 """
 Web Scraper Script
 
-This script is designed to scrape a website and convert its content to Markdown format.
+This script is designed to scrape websites and convert their content to Markdown format.
 It uses Scrapy for web crawling and html2text for HTML to Markdown conversion.
 
 The script performs the following main tasks:
-1. Crawls a specified website, starting from the provided URL
+1. Crawls specified websites, either a single URL or multiple URLs from a file
 2. Converts HTML content to Markdown
 3. Saves each page as a separate Markdown file, maintaining the original site structure
 4. Creates a table of contents for the scraped content
 5. Adds the output directory to .gitignore in the Git root directory to prevent version control of scraped content
 
 Usage:
-    python web_scraper.py <url> <output_dir>
+    python web_scraper.py <url_or_file> <output_dir>
 
-    <url>: The URL of the website to scrape
+    <url_or_file>: The URL to scrape or a file containing URLs (one per line)
     <output_dir>: The directory where the Markdown files will be saved
 
 Dependencies:
@@ -85,13 +85,26 @@ def update_gitignore(output_dir):
     else:
         print(f"{gitignore_entry} already in .gitignore")
 
+def read_urls_from_file(file_path):
+    """
+    Read URLs from a file, one URL per line.
+
+    Args:
+        file_path (str): Path to the file containing URLs
+
+    Returns:
+        list: List of URLs read from the file
+    """
+    with open(file_path, 'r') as file:
+        return [line.strip() for line in file if line.strip()]
+
 class WebsiteSpider(scrapy.Spider):
     name = 'website_spider'
 
-    def __init__(self, start_url=None, output_dir=None, *args, **kwargs):
+    def __init__(self, start_urls, output_dir, *args, **kwargs):
         super(WebsiteSpider, self).__init__(*args, **kwargs)
-        self.start_urls = [start_url]
-        self.allowed_domains = [urlparse(start_url).netloc]
+        self.start_urls = start_urls
+        self.allowed_domains = [urlparse(url).netloc for url in start_urls]
         self.output_dir = os.path.abspath(output_dir)
         self.h2t = html2text.HTML2Text()
         self.h2t.ignore_links = False
@@ -112,11 +125,12 @@ class WebsiteSpider(scrapy.Spider):
             markdown_content = f"Original page: {response.url}\n\n{markdown_content}"
 
             # Create file path that mirrors the source site directory structure
+            domain = urlparse(response.url).netloc
             url_path = urlparse(response.url).path
             if url_path.endswith('/') or url_path == '':
                 url_path += 'index'
             
-            file_path = os.path.join(self.output_dir, url_path.lstrip('/').replace('.html', '.md'))
+            file_path = os.path.join(self.output_dir, domain, url_path.lstrip('/').replace('.html', '.md'))
 
             # Ensure directory exists
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -128,13 +142,13 @@ class WebsiteSpider(scrapy.Spider):
             # Extract title from the page
             title = response.css('title::text').get() or os.path.basename(file_path)
 
-            self.sitemap.append((title, response.url, file_path))
+            self.sitemap.append((domain, title, response.url, file_path))
             self.logger.info(f"Scraped: {response.url} -> {file_path}")
 
             # Follow links within the same domain
             for href in response.css('a::attr(href)').getall():
                 url = urljoin(response.url, href)
-                if urlparse(url).netloc == self.allowed_domains[0]:
+                if urlparse(url).netloc == domain:
                     yield scrapy.Request(url, callback=self.parse)
 
         except Exception as e:
@@ -146,10 +160,10 @@ class WebsiteSpider(scrapy.Spider):
     def create_table_of_contents(self):
         toc_content = """# Table of Contents
 
-This table of contents provides an overview of all the pages scraped from the website. It is organized hierarchically to reflect the structure of the original site. You can use this table of contents to:
+This table of contents provides an overview of all the pages scraped from the website(s). It is organized hierarchically to reflect the structure of the original site(s). You can use this table of contents to:
 
 1. Navigate through the scraped content easily
-2. Understand the overall structure of the website
+2. Understand the overall structure of the website(s)
 3. Quickly find specific pages or topics of interest
 
 Each entry in the table of contents is a link to the corresponding Markdown file in the output directory. The indentation indicates the hierarchy of pages within the site structure.
@@ -158,13 +172,18 @@ Each entry in the table of contents is a link to the corresponding Markdown file
 
 """
 
-        # Sort the sitemap by file path to group related pages together
-        sorted_sitemap = sorted(self.sitemap, key=lambda x: x[2])
+        # Sort the sitemap by domain and then by file path to group related pages together
+        sorted_sitemap = sorted(self.sitemap, key=lambda x: (x[0], x[3]))
 
-        for title, url, file_path in sorted_sitemap:
+        current_domain = None
+        for domain, title, url, file_path in sorted_sitemap:
+            if domain != current_domain:
+                toc_content += f"\n## {domain}\n\n"
+                current_domain = domain
+
             relative_path = os.path.relpath(file_path, self.output_dir)
             parts = relative_path.split(os.sep)
-            depth = len(parts) - 1
+            depth = len(parts) - 2  # Subtract 2 to account for the domain directory
             indent = '  ' * depth
             toc_content += f"{indent}- [{title}]({relative_path})\n"
 
@@ -173,8 +192,8 @@ Each entry in the table of contents is a link to the corresponding Markdown file
             f.write(toc_content)
 
 def main():
-    parser = argparse.ArgumentParser(description='Scrape a website and convert to Markdown.')
-    parser.add_argument('url', help='The URL to scrape')
+    parser = argparse.ArgumentParser(description='Scrape website(s) and convert to Markdown.')
+    parser.add_argument('url_or_file', help='The URL to scrape or a file containing URLs (one per line)')
     parser.add_argument('output_dir', help='The directory to save the Markdown files')
     args = parser.parse_args()
 
@@ -188,12 +207,18 @@ def main():
     # Update .gitignore
     update_gitignore(output_dir)
 
+    # Determine if input is a URL or a file
+    if os.path.isfile(args.url_or_file):
+        start_urls = read_urls_from_file(args.url_or_file)
+    else:
+        start_urls = [args.url_or_file]
+
     process = CrawlerProcess({
         'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'LOG_LEVEL': 'INFO'
     })
 
-    process.crawl(WebsiteSpider, start_url=args.url, output_dir=output_dir)
+    process.crawl(WebsiteSpider, start_urls=start_urls, output_dir=output_dir)
     process.start()
 
 if __name__ == "__main__":
