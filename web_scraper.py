@@ -13,6 +13,7 @@ Main features:
 6. Implements secure coding practices including input validation and sanitization
 7. Option to combine markdown files per directory during scraping
 8. Handles 404 errors by attempting to crawl deeper into the directory structure
+9. Implements rate limiting to prevent overwhelming target websites
 
 Usage:
     python web_scraper.py -u <url> -o <output_dir> [options]
@@ -29,11 +30,13 @@ Options:
     --data-download-limit LIMIT Limit the amount of data to download (e.g., 4GB)
                               Note: This is a beta feature and may not work as expected
     --combine-markdown        Combine markdown files per directory during scraping
+    -d, --delay DELAY         Set the delay between requests in seconds (default: 1)
 
 Dependencies:
     - scrapy
     - html2text
     - validators
+    - beautifulsoup4
 """
 
 import os
@@ -51,6 +54,7 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.http import Response
 import html2text
 import validators
+from bs4 import BeautifulSoup
 
 
 def find_git_root(path: str) -> Optional[str]:
@@ -210,6 +214,7 @@ class WebsiteSpider(scrapy.Spider):
         self.output_dir = os.path.abspath(output_dir)
         self.h2t = html2text.HTML2Text()
         self.h2t.ignore_links = ignore_links
+        self.h2t.body_width = 0  # Disable line wrapping
         self.sitemap: List[Tuple[str, str, str, str]] = []
         self.subdir = subdir
         self.original_url_path = urlparse(start_urls[0]).path
@@ -350,9 +355,27 @@ class WebsiteSpider(scrapy.Spider):
         Returns:
             str: The extracted content converted to Markdown.
         """
-        main_content = response.css('main').get() or response.css('article').get() or response.css('body').get()
-        markdown_content = self.h2t.handle(main_content)
-        return f"Original page: {response.url}\n\n{markdown_content}"
+        soup = BeautifulSoup(response.body, 'html.parser')
+        
+        # Remove script and style elements
+        for script in soup(["script", "style"]):
+            script.decompose()
+        
+        # Extract main content
+        main_content = soup.find('main') or soup.find('article') or soup.find('body')
+        
+        if main_content:
+            # Convert to string and then to Markdown
+            html_content = str(main_content)
+            markdown_content = self.h2t.handle(html_content)
+            
+            # Remove extra newlines and spaces
+            markdown_content = re.sub(r'\n\s*\n', '\n\n', markdown_content)
+            markdown_content = re.sub(r'^\s+', '', markdown_content, flags=re.MULTILINE)
+            
+            return f"Original page: {response.url}\n\n{markdown_content}"
+        else:
+            return f"Original page: {response.url}\n\nNo content found."
 
     def _create_file_path(self, url: str) -> str:
         """
@@ -566,6 +589,7 @@ def main():
     parser.add_argument('-s', '--subdir', help='Limit scraping to a specific subdirectory')
     parser.add_argument('--data-download-limit', help='Limit the amount of data to download (e.g., 4GB). Note: This is a beta feature.')
     parser.add_argument('--combine-markdown', action='store_true', help='Combine markdown files per directory during scraping')
+    parser.add_argument('-d', '--delay', type=float, default=1.0, help='Set the delay between requests in seconds (default: 1)')
     args = parser.parse_args()
 
     # Set up logging
@@ -601,7 +625,9 @@ def main():
     # Set up and start the Scrapy crawler
     process = CrawlerProcess({
         'USER_AGENT': args.user_agent,
-        'LOG_LEVEL': 'DEBUG' if args.verbose else 'INFO'
+        'LOG_LEVEL': 'DEBUG' if args.verbose else 'INFO',
+        'DOWNLOAD_DELAY': args.delay,  # Add delay between requests
+        'RANDOMIZE_DOWNLOAD_DELAY': True  # Randomize the delay
     })
 
     process.crawl(WebsiteSpider, start_urls=start_urls, output_dir=output_dir, ignore_links=args.ignore_links,
