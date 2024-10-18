@@ -30,7 +30,8 @@ Options:
     --data-download-limit LIMIT Limit the amount of data to download (e.g., 4GB)
                               Note: This is a beta feature and may not work as expected
     --combine-markdown        Combine markdown files per directory during scraping
-    -d, --delay DELAY         Set the delay between requests in seconds (default: 1)
+    -d, --delay DELAY         Set the delay between requests in seconds (default: 1.0)
+                              The actual delay will be randomized between 0.5 * DELAY and 1.5 * DELAY
 
 Dependencies:
     - scrapy
@@ -589,7 +590,7 @@ def main():
     parser.add_argument('-s', '--subdir', help='Limit scraping to a specific subdirectory')
     parser.add_argument('--data-download-limit', help='Limit the amount of data to download (e.g., 4GB). Note: This is a beta feature.')
     parser.add_argument('--combine-markdown', action='store_true', help='Combine markdown files per directory during scraping')
-    parser.add_argument('-d', '--delay', type=float, default=1.0, help='Set the delay between requests in seconds (default: 1)')
+    parser.add_argument('-d', '--delay', type=float, default=1.0, help='Set the delay between requests in seconds (default: 1.0). The actual delay will be randomized between 0.5 * DELAY and 1.5 * DELAY')
     args = parser.parse_args()
 
     # Set up logging
