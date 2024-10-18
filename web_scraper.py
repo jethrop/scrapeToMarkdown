@@ -587,7 +587,7 @@ def main():
     parser.add_argument('-i', '--ignore-links', action='store_true', help='Ignore links in the HTML when converting to Markdown')
     parser.add_argument('-a', '--user-agent', default='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36', help='Set a custom user agent string')
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity')
-    parser.add_argument('-s', '--subdir', help='Limit scraping to a specific subdirectory')
+    parser.add_argument('-s', '--subdir', help='Limit scraping to a specific subdirectory. Example: If you want to scrape only the "/docs" subdirectory from https://example.com, use "--subdir docs".')
     parser.add_argument('--data-download-limit', help='Limit the amount of data to download (e.g., 4GB). Note: This is a beta feature.')
     parser.add_argument('--combine-markdown', action='store_true', help='Combine markdown files per directory during scraping')
     parser.add_argument('-d', '--delay', type=float, default=1.0, help='Set the delay between requests in seconds (default: 1.0). The actual delay will be randomized between 0.5 * DELAY and 1.5 * DELAY')
