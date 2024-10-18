@@ -1,2 +1,0 @@
-https://supabase.com/docs
-https://www.rabbitmq.com/docs
