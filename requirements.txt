@@ -1,4 +1,5 @@
-scrapy>=2.5.0
-html2text>=2020.1.16
-validators>=0.18.2
-typing>=3.7.4
+scrapy>=2.9.0
+html2text>=2022.1.0
+validators>=0.20.0
+beautifulsoup4>=4.12.2
+typing>=3.7.4.3
