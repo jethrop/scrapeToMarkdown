@@ -145,6 +145,7 @@ class WebsiteSpider(scrapy.Spider):
         self.combined_content: Dict[str, str] = {}
         self.visited_urls: Set[str] = set()
         self.max_subdirectory_depth = 3  # Maximum depth for subdirectory attempts
+        self.processed_urls: Set[str] = set()  # New: Track processed URLs
 
     def parse(self, response: Response):
         if self._check_data_limit():
@@ -198,11 +199,17 @@ class WebsiteSpider(scrapy.Spider):
 
     def _process_page(self, response: Response):
         """Process a successfully scraped page."""
+        if response.url in self.processed_urls:
+            self.logger.info(f"Skipping already processed URL: {response.url}")
+            return
+
+        self.processed_urls.add(response.url)
+
         markdown_content = self._extract_and_convert_content(response)
         file_path = self._create_file_path(response.url)
         
         if self.combine_markdown:
-            self._add_to_combined_content(file_path, markdown_content)
+            self._add_to_combined_content(file_path, markdown_content, response.url)
         else:
             self._save_markdown_file(file_path, markdown_content)
 
@@ -235,12 +242,17 @@ class WebsiteSpider(scrapy.Spider):
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
 
-    def _add_to_combined_content(self, file_path: str, content: str) -> None:
+    def _add_to_combined_content(self, file_path: str, content: str, url: str) -> None:
         """Add content to the combined markdown for the directory."""
         directory = os.path.dirname(file_path)
         if directory not in self.combined_content:
             self.combined_content[directory] = ""
-        self.combined_content[directory] += f"\n\n# {os.path.basename(file_path)}\n\n{content}"
+        
+        # Add a clear separator and URL before the content
+        self.combined_content[directory] += f"\n\n{'=' * 80}\n"
+        self.combined_content[directory] += f"# {os.path.basename(file_path)}\n"
+        self.combined_content[directory] += f"URL: {url}\n\n"
+        self.combined_content[directory] += content
 
     def _extract_title(self, response: Response) -> str:
         """Extract the title from the page."""
