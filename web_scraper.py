@@ -13,6 +13,7 @@ Main features:
 6. Implements secure coding practices including input validation and sanitization
 7. Option to combine markdown files per directory during scraping
 8. Handles 404 errors by attempting to crawl deeper into the directory structure
+9. Implements rate limiting to prevent overwhelming target websites
 
 Usage:
     python web_scraper.py -u <url> -o <output_dir> [options]
@@ -29,11 +30,14 @@ Options:
     --data-download-limit LIMIT Limit the amount of data to download (e.g., 4GB)
                               Note: This is a beta feature and may not work as expected
     --combine-markdown        Combine markdown files per directory during scraping
+    -d, --delay DELAY         Set the delay between requests in seconds (default: 1.0)
+                              The actual delay will be randomized between 0.5 * DELAY and 1.5 * DELAY
 
 Dependencies:
     - scrapy
     - html2text
     - validators
+    - beautifulsoup4
 """
 
 import os
@@ -51,6 +55,7 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.http import Response
 import html2text
 import validators
+from bs4 import BeautifulSoup
 
 
 def find_git_root(path: str) -> Optional[str]:
@@ -210,6 +215,7 @@ class WebsiteSpider(scrapy.Spider):
         self.output_dir = os.path.abspath(output_dir)
         self.h2t = html2text.HTML2Text()
         self.h2t.ignore_links = ignore_links
+        self.h2t.body_width = 0  # Disable line wrapping
         self.sitemap: List[Tuple[str, str, str, str]] = []
         self.subdir = subdir
         self.original_url_path = urlparse(start_urls[0]).path
@@ -275,9 +281,20 @@ class WebsiteSpider(scrapy.Spider):
         Returns:
             bool: True if the URL is valid and within scope, False otherwise.
         """
-        current_path = urlparse(url).path
-        return (current_path.startswith(self.original_url_path) and
-                (not self.subdir or current_path.startswith(self.subdir)))
+        parsed_url = urlparse(url)
+        current_path = parsed_url.path
+
+        # Check if the URL is within the original domain and path
+        if not current_path.startswith(self.original_url_path):
+            return False
+
+        # If subdir is specified, check if the URL is within the subdirectory
+        if self.subdir:
+            subdir_path = os.path.join(self.original_url_path, self.subdir.strip('/'))
+            if not current_path.startswith(subdir_path):
+                return False
+
+        return True
 
     def _handle_404(self, response: Response):
         """
@@ -298,7 +315,7 @@ class WebsiteSpider(scrapy.Spider):
         for i in range(len(path_parts), 0, -1):
             new_path = '/'.join(path_parts[:i])
             new_url = parsed_url._replace(path=new_path).geturl()
-            if new_url != response.url and new_url not in self.visited_urls:
+            if new_url != response.url and new_url not in self.visited_urls and self._is_valid_url(new_url):
                 self.visited_urls.add(new_url)
                 yield scrapy.Request(new_url, callback=self.parse, dont_filter=True,
                                      meta={'depth': response.meta.get('depth', 0) + 1})
@@ -350,9 +367,27 @@ class WebsiteSpider(scrapy.Spider):
         Returns:
             str: The extracted content converted to Markdown.
         """
-        main_content = response.css('main').get() or response.css('article').get() or response.css('body').get()
-        markdown_content = self.h2t.handle(main_content)
-        return f"Original page: {response.url}\n\n{markdown_content}"
+        soup = BeautifulSoup(response.body, 'html.parser')
+        
+        # Remove script and style elements
+        for script in soup(["script", "style"]):
+            script.decompose()
+        
+        # Extract main content
+        main_content = soup.find('main') or soup.find('article') or soup.find('body')
+        
+        if main_content:
+            # Convert to string and then to Markdown
+            html_content = str(main_content)
+            markdown_content = self.h2t.handle(html_content)
+            
+            # Remove extra newlines and spaces
+            markdown_content = re.sub(r'\n\s*\n', '\n\n', markdown_content)
+            markdown_content = re.sub(r'^\s+', '', markdown_content, flags=re.MULTILINE)
+            
+            return f"Original page: {response.url}\n\n{markdown_content}"
+        else:
+            return f"Original page: {response.url}\n\nNo content found."
 
     def _create_file_path(self, url: str) -> str:
         """
@@ -446,11 +481,9 @@ class WebsiteSpider(scrapy.Spider):
         domain = urlparse(response.url).netloc
         for href in response.css('a::attr(href)').getall():
             url = urljoin(response.url, href)
-            parsed_url = urlparse(url)
-            if parsed_url.netloc == domain and parsed_url.path.startswith(self.original_url_path):
-                if url not in self.visited_urls:
-                    self.visited_urls.add(url)
-                    yield scrapy.Request(url, callback=self.parse)
+            if self._is_valid_url(url) and url not in self.visited_urls:
+                self.visited_urls.add(url)
+                yield scrapy.Request(url, callback=self.parse)
 
     def closed(self, reason):
         """
@@ -563,9 +596,10 @@ def main():
     parser.add_argument('-i', '--ignore-links', action='store_true', help='Ignore links in the HTML when converting to Markdown')
     parser.add_argument('-a', '--user-agent', default='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36', help='Set a custom user agent string')
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity')
-    parser.add_argument('-s', '--subdir', help='Limit scraping to a specific subdirectory')
+    parser.add_argument('-s', '--subdir', help='Limit scraping to a specific subdirectory. Example: If you want to scrape only the "/docs" subdirectory from https://example.com, use "--subdir docs".')
     parser.add_argument('--data-download-limit', help='Limit the amount of data to download (e.g., 4GB). Note: This is a beta feature.')
     parser.add_argument('--combine-markdown', action='store_true', help='Combine markdown files per directory during scraping')
+    parser.add_argument('-d', '--delay', type=float, default=1.0, help='Set the delay between requests in seconds (default: 1.0). The actual delay will be randomized between 0.5 * DELAY and 1.5 * DELAY')
     args = parser.parse_args()
 
     # Set up logging
@@ -601,7 +635,9 @@ def main():
     # Set up and start the Scrapy crawler
     process = CrawlerProcess({
         'USER_AGENT': args.user_agent,
-        'LOG_LEVEL': 'DEBUG' if args.verbose else 'INFO'
+        'LOG_LEVEL': 'DEBUG' if args.verbose else 'INFO',
+        'DOWNLOAD_DELAY': args.delay,  # Add delay between requests
+        'RANDOMIZE_DOWNLOAD_DELAY': True  # Randomize the delay
     })
 
     process.crawl(WebsiteSpider, start_urls=start_urls, output_dir=output_dir, ignore_links=args.ignore_links,
