@@ -1,3 +1,4 @@
 scrapy>=2.5.0
 html2text>=2020.1.16
 validators>=0.18.2
+typing>=3.7.4
