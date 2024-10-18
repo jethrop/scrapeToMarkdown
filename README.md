@@ -10,6 +10,9 @@ This Python script is designed to scrape websites and convert their content to M
 4. Creates a table of contents for the scraped content
 5. Adds the output directory to .gitignore in the Git root directory
 6. Implements secure coding practices including input validation and sanitization
+7. Option to combine markdown files per directory during scraping
+8. Handles 404 errors by attempting to crawl deeper into the directory structure
+9. Verbose inline documentation for improved code readability and maintainability
 
 ## Requirements
 
@@ -41,6 +44,7 @@ python web_scraper.py -f <url_file> -o <output_dir> [options]
 - `-v`, `--verbose`: Increase output verbosity
 - `-s`, `--subdir` SUBDIR: Limit scraping to a specific subdirectory
 - `--data-download-limit` LIMIT: Limit the amount of data to download (e.g., 4GB)
+- `--combine-markdown`: Combine markdown files per directory during scraping
 
 ## Examples
 
@@ -59,9 +63,14 @@ python web_scraper.py -f <url_file> -o <output_dir> [options]
    python web_scraper.py -u https://example.com -o scraped_content --data-download-limit 100MB -a "MyBot/1.0"
    ```
 
+4. Scrape and combine markdown files per directory:
+   ```
+   python web_scraper.py -u https://example.com -o scraped_content --combine-markdown
+   ```
+
 ## Output
 
-The script creates a directory structure mirroring the scraped website(s) and saves each page as a separate Markdown file. It also generates a `table_of_contents.md` file in the output directory, providing an overview of all scraped pages.
+The script creates a directory structure mirroring the scraped website(s) and saves each page as a separate Markdown file. It also generates a `table_of_contents.md` file in the output directory, providing an overview of all scraped pages. If the `--combine-markdown` option is used, it will also create a `combined.md` file in each directory containing all the markdown content for that directory.
 
 ## Security Considerations
 
@@ -73,8 +82,13 @@ The script creates a directory structure mirroring the scraped website(s) and sa
 ## Limitations/Issues
 - The data download limit feature is in beta and may not work as expected in all scenarios.
 - The script does not handle JavaScript-rendered content, as it relies on Scrapy's static HTML parsing.
-- The combined feature works.  However, some websites (like https://supabase.com/docs/reference/javascript/installing) have a directory structure that actually all points to the same document.  This causes the script to download the same document multiple times.  This is a limitation of the script and not a bug.
+- The combined feature works. However, some websites (like https://supabase.com/docs/reference/javascript/installing) have a directory structure that actually all points to the same document. This causes the script to download the same document multiple times. This is a limitation of the script and not a bug.
 - The output contains some weird formatting errors like _10.
+
+## Recent Changes
+- Added option to combine markdown files per directory during scraping
+- Implemented handling of 404 errors by attempting to crawl deeper into the directory structure
+- Added verbose inline documentation to improve code readability and maintainability
 
 ## Contributing
 
