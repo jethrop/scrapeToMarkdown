@@ -54,7 +54,18 @@ import validators
 
 
 def find_git_root(path: str) -> Optional[str]:
-    """Find the root directory of the Git repository."""
+    """
+    Find the root directory of the Git repository.
+
+    This function attempts to locate the root directory of a Git repository
+    by executing the 'git rev-parse --show-toplevel' command.
+
+    Args:
+        path (str): The starting path to search from.
+
+    Returns:
+        Optional[str]: The path to the Git root directory if found, None otherwise.
+    """
     try:
         return subprocess.check_output(['git', 'rev-parse', '--show-toplevel'],
                                        cwd=path,
@@ -64,12 +75,32 @@ def find_git_root(path: str) -> Optional[str]:
 
 
 def escape_gitignore_pattern(pattern: str) -> str:
-    """Escape special characters in a gitignore pattern."""
+    """
+    Escape special characters in a gitignore pattern.
+
+    This function escapes special characters (#, !, [, ]) in a gitignore pattern
+    to ensure they are treated literally.
+
+    Args:
+        pattern (str): The gitignore pattern to escape.
+
+    Returns:
+        str: The escaped gitignore pattern.
+    """
     return re.sub(r'([#!\[\]])', r'\\\1', pattern)
 
 
 def update_gitignore(output_dir: str, negate: bool = False) -> None:
-    """Update .gitignore file in the Git root directory to include the output directory."""
+    """
+    Update .gitignore file in the Git root directory to include the output directory.
+
+    This function adds the output directory to the .gitignore file in the Git root directory.
+    If the .gitignore file doesn't exist, it creates one.
+
+    Args:
+        output_dir (str): The output directory to add to .gitignore.
+        negate (bool, optional): If True, negates the gitignore entry. Defaults to False.
+    """
     current_dir = os.path.abspath(os.getcwd())
     git_root = find_git_root(current_dir)
 
@@ -98,14 +129,39 @@ def update_gitignore(output_dir: str, negate: bool = False) -> None:
 
 
 def read_urls_from_file(file_path: str) -> List[str]:
-    """Read URLs from a file, one URL per line."""
+    """
+    Read URLs from a file, one URL per line.
+
+    This function reads a file containing URLs (one per line) and returns a list
+    of valid URLs.
+
+    Args:
+        file_path (str): The path to the file containing URLs.
+
+    Returns:
+        List[str]: A list of valid URLs read from the file.
+    """
     with open(file_path, 'r') as file:
         urls = [line.strip() for line in file if line.strip()]
     return [url for url in urls if validators.url(url)]
 
 
 def parse_size(size: str) -> int:
-    """Parse a human-readable size string (e.g., '4GB') to bytes."""
+    """
+    Parse a human-readable size string (e.g., '4GB') to bytes.
+
+    This function converts a human-readable size string to its equivalent in bytes.
+    It supports units B, KB, MB, GB, and TB.
+
+    Args:
+        size (str): A string representing a file size (e.g., '4GB', '100MB').
+
+    Returns:
+        int: The size in bytes.
+
+    Raises:
+        ValueError: If the size format is invalid.
+    """
     units = {
         'B': 1,
         'KB': 1024,
@@ -124,12 +180,30 @@ def parse_size(size: str) -> int:
 
 
 class WebsiteSpider(scrapy.Spider):
+    """
+    A Scrapy spider for crawling websites and converting content to Markdown.
+
+    This spider crawls specified URLs, converts HTML content to Markdown,
+    and saves the results in a structured manner.
+    """
+
     name = 'website_spider'
     handle_httpstatus_list = [404]  # Tell Scrapy to process 404 responses
 
     def __init__(self, start_urls: List[str], output_dir: str, ignore_links: bool = False,
                  subdir: Optional[str] = None, data_limit: Optional[int] = None,
                  combine_markdown: bool = False, *args, **kwargs):
+        """
+        Initialize the WebsiteSpider.
+
+        Args:
+            start_urls (List[str]): List of URLs to start crawling from.
+            output_dir (str): Directory to save the scraped content.
+            ignore_links (bool, optional): Whether to ignore links when converting to Markdown. Defaults to False.
+            subdir (Optional[str], optional): Subdirectory to limit crawling to. Defaults to None.
+            data_limit (Optional[int], optional): Limit on the amount of data to download. Defaults to None.
+            combine_markdown (bool, optional): Whether to combine Markdown files per directory. Defaults to False.
+        """
         super(WebsiteSpider, self).__init__(*args, **kwargs)
         self.start_urls = start_urls
         self.allowed_domains = [urlparse(url).netloc for url in start_urls]
@@ -148,6 +222,19 @@ class WebsiteSpider(scrapy.Spider):
         self.processed_urls: Set[str] = set()  # New: Track processed URLs
 
     def parse(self, response: Response):
+        """
+        Parse the response from a crawled URL.
+
+        This method is called for each response downloaded from the web. It handles
+        the main logic for processing the page, including checking data limits,
+        handling 404 errors, and processing valid pages.
+
+        Args:
+            response (Response): The response object from Scrapy.
+
+        Yields:
+            Generator: May yield new requests to follow.
+        """
         if self._check_data_limit():
             return
 
@@ -167,20 +254,43 @@ class WebsiteSpider(scrapy.Spider):
             self.logger.error(f"Error scraping {response.url}: {str(e)}")
 
     def _check_data_limit(self) -> bool:
-        """Check if the data download limit has been reached."""
+        """
+        Check if the data download limit has been reached.
+
+        Returns:
+            bool: True if the limit has been reached, False otherwise.
+        """
         if self.data_limit and self.total_data_downloaded >= self.data_limit:
             self.logger.info("Data download limit reached. Stopping crawl.")
             return True
         return False
 
     def _is_valid_url(self, url: str) -> bool:
-        """Check if the URL is valid and within the allowed scope."""
+        """
+        Check if the URL is valid and within the allowed scope.
+
+        Args:
+            url (str): The URL to check.
+
+        Returns:
+            bool: True if the URL is valid and within scope, False otherwise.
+        """
         current_path = urlparse(url).path
         return (current_path.startswith(self.original_url_path) and
                 (not self.subdir or current_path.startswith(self.subdir)))
 
     def _handle_404(self, response: Response):
-        """Handle 404 errors by attempting to crawl subdirectories."""
+        """
+        Handle 404 errors by attempting to crawl subdirectories.
+
+        This method tries to navigate up the URL path to find valid pages when a 404 is encountered.
+
+        Args:
+            response (Response): The 404 response object.
+
+        Yields:
+            Generator: New requests for potential valid URLs.
+        """
         self.logger.info(f"Attempting to crawl subdirectories for: {response.url}")
         parsed_url = urlparse(response.url)
         path_parts = parsed_url.path.rstrip('/').split('/')
@@ -198,7 +308,18 @@ class WebsiteSpider(scrapy.Spider):
                 break
 
     def _process_page(self, response: Response):
-        """Process a successfully scraped page."""
+        """
+        Process a successfully scraped page.
+
+        This method handles the main logic for processing a valid page, including
+        content extraction, Markdown conversion, and file saving.
+
+        Args:
+            response (Response): The response object for the scraped page.
+
+        Yields:
+            Generator: May yield new requests to follow links.
+        """
         if response.url in self.processed_urls:
             self.logger.info(f"Skipping already processed URL: {response.url}")
             return
@@ -220,13 +341,29 @@ class WebsiteSpider(scrapy.Spider):
             yield from self._follow_links(response)
 
     def _extract_and_convert_content(self, response: Response) -> str:
-        """Extract main content and convert to Markdown."""
+        """
+        Extract main content from the response and convert it to Markdown.
+
+        Args:
+            response (Response): The response object containing the HTML content.
+
+        Returns:
+            str: The extracted content converted to Markdown.
+        """
         main_content = response.css('main').get() or response.css('article').get() or response.css('body').get()
         markdown_content = self.h2t.handle(main_content)
         return f"Original page: {response.url}\n\n{markdown_content}"
 
     def _create_file_path(self, url: str) -> str:
-        """Create a file path for the Markdown file."""
+        """
+        Create a file path for the Markdown file based on the URL.
+
+        Args:
+            url (str): The URL of the scraped page.
+
+        Returns:
+            str: The file path where the Markdown content will be saved.
+        """
         domain = urlparse(url).netloc
         url_path = urlparse(url).path
         if url_path.endswith('/') or url_path == '':
@@ -237,13 +374,28 @@ class WebsiteSpider(scrapy.Spider):
         return os.path.join(self.output_dir, domain, os.path.dirname(url_path.lstrip('/')), file_name)
 
     def _save_markdown_file(self, file_path: str, content: str) -> None:
-        """Save the Markdown content to a file."""
+        """
+        Save the Markdown content to a file.
+
+        Args:
+            file_path (str): The path where the file should be saved.
+            content (str): The Markdown content to save.
+        """
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
 
     def _add_to_combined_content(self, file_path: str, content: str, url: str) -> None:
-        """Add content to the combined markdown for the directory."""
+        """
+        Add content to the combined markdown for the directory.
+
+        This method is used when the combine_markdown option is enabled.
+
+        Args:
+            file_path (str): The file path for the individual Markdown file.
+            content (str): The Markdown content to add.
+            url (str): The URL of the original page.
+        """
         directory = os.path.dirname(file_path)
         if directory not in self.combined_content:
             self.combined_content[directory] = ""
@@ -255,17 +407,42 @@ class WebsiteSpider(scrapy.Spider):
         self.combined_content[directory] += content
 
     def _extract_title(self, response: Response) -> str:
-        """Extract the title from the page."""
+        """
+        Extract the title from the page.
+
+        Args:
+            response (Response): The response object containing the HTML content.
+
+        Returns:
+            str: The extracted title or the basename of the URL if no title is found.
+        """
         return response.css('title::text').get() or os.path.basename(response.url)
 
     def _update_sitemap(self, url: str, title: str, file_path: str) -> None:
-        """Update the sitemap with the scraped page information."""
+        """
+        Update the sitemap with the scraped page information.
+
+        Args:
+            url (str): The URL of the scraped page.
+            title (str): The title of the page.
+            file_path (str): The path where the Markdown file is saved.
+        """
         domain = urlparse(url).netloc
         self.sitemap.append((domain, title, url, file_path))
         self.logger.info(f"Scraped: {url} -> {file_path}")
 
     def _follow_links(self, response: Response):
-        """Follow links within the same domain and original URL path."""
+        """
+        Follow links within the same domain and original URL path.
+
+        This method is called when ignore_links is False.
+
+        Args:
+            response (Response): The response object containing the HTML content.
+
+        Yields:
+            Generator: New requests for links to follow.
+        """
         domain = urlparse(response.url).netloc
         for href in response.css('a::attr(href)').getall():
             url = urljoin(response.url, href)
@@ -276,12 +453,25 @@ class WebsiteSpider(scrapy.Spider):
                     yield scrapy.Request(url, callback=self.parse)
 
     def closed(self, reason):
+        """
+        Called when the spider is closed.
+
+        This method handles final tasks such as saving combined Markdown files
+        and creating the table of contents.
+
+        Args:
+            reason: The reason for closing the spider.
+        """
         if self.combine_markdown:
             self._save_combined_markdown_files()
         self._create_table_of_contents()
 
     def _save_combined_markdown_files(self) -> None:
-        """Save the combined markdown content for each directory."""
+        """
+        Save the combined markdown content for each directory.
+
+        This method is called when the combine_markdown option is enabled.
+        """
         for directory, content in self.combined_content.items():
             combined_file_path = os.path.join(directory, 'combined.md')
             os.makedirs(os.path.dirname(combined_file_path), exist_ok=True)
@@ -290,14 +480,24 @@ class WebsiteSpider(scrapy.Spider):
             self.logger.info(f"Saved combined markdown file: {combined_file_path}")
 
     def _create_table_of_contents(self) -> None:
-        """Create a table of contents for the scraped content."""
+        """
+        Create a table of contents for the scraped content.
+
+        This method generates a Markdown file containing a structured table of contents
+        for all scraped pages.
+        """
         toc_content = self._generate_toc_header()
         sorted_sitemap = sorted(self.sitemap, key=lambda x: (x[0], x[3]))
         toc_content += self._generate_toc_entries(sorted_sitemap)
         self._save_toc_file(toc_content)
 
     def _generate_toc_header(self) -> str:
-        """Generate the header for the table of contents."""
+        """
+        Generate the header for the table of contents.
+
+        Returns:
+            str: The header content for the table of contents.
+        """
         return """# Table of Contents
 
 This table of contents provides an overview of all the pages scraped from the website(s). It is organized hierarchically to reflect the structure of the original site(s). You can use this table of contents to:
@@ -313,7 +513,15 @@ Each entry in the table of contents is a link to the corresponding Markdown file
 """
 
     def _generate_toc_entries(self, sorted_sitemap: List[Tuple[str, str, str, str]]) -> str:
-        """Generate the entries for the table of contents."""
+        """
+        Generate the entries for the table of contents.
+
+        Args:
+            sorted_sitemap (List[Tuple[str, str, str, str]]): A sorted list of sitemap entries.
+
+        Returns:
+            str: The generated table of contents entries.
+        """
         toc_content = ""
         current_domain = None
         for domain, title, url, file_path in sorted_sitemap:
@@ -328,7 +536,12 @@ Each entry in the table of contents is a link to the corresponding Markdown file
         return toc_content
 
     def _save_toc_file(self, toc_content: str) -> None:
-        """Save the table of contents to a file."""
+        """
+        Save the table of contents to a file.
+
+        Args:
+            toc_content (str): The content of the table of contents.
+        """
         toc_file_path = os.path.join(self.output_dir, 'table_of_contents.md')
         os.makedirs(os.path.dirname(toc_file_path), exist_ok=True)
         with open(toc_file_path, 'w', encoding='utf-8') as f:
@@ -336,6 +549,12 @@ Each entry in the table of contents is a link to the corresponding Markdown file
 
 
 def main():
+    """
+    The main function to run the web scraper.
+
+    This function parses command-line arguments, sets up logging,
+    initializes the web scraper, and starts the crawling process.
+    """
     parser = argparse.ArgumentParser(description='Scrape website(s) and convert to Markdown.')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-u', '--url', help='The URL to scrape')
@@ -349,14 +568,18 @@ def main():
     parser.add_argument('--combine-markdown', action='store_true', help='Combine markdown files per directory during scraping')
     args = parser.parse_args()
 
+    # Set up logging
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
+    # Prepare output directory
     output_dir = os.path.abspath(args.output)
     os.makedirs(output_dir, exist_ok=True)
 
+    # Update .gitignore
     update_gitignore(output_dir)
 
+    # Prepare start URLs
     if args.file:
         start_urls = read_urls_from_file(args.file)
     else:
@@ -366,6 +589,7 @@ def main():
         logging.error("Error: No valid URLs provided.")
         sys.exit(1)
 
+    # Parse data download limit
     data_limit = None
     if args.data_download_limit:
         try:
@@ -374,6 +598,7 @@ def main():
             logging.error(f"Error: {str(e)}")
             sys.exit(1)
 
+    # Set up and start the Scrapy crawler
     process = CrawlerProcess({
         'USER_AGENT': args.user_agent,
         'LOG_LEVEL': 'DEBUG' if args.verbose else 'INFO'
