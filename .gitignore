@@ -10,3 +10,6 @@ scraped_content_rabbitmq/
 
 # Scraped content
 scraped_content/
+
+# Scraped content
+playwright_docs/
