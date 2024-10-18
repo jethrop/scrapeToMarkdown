@@ -281,9 +281,20 @@ class WebsiteSpider(scrapy.Spider):
         Returns:
             bool: True if the URL is valid and within scope, False otherwise.
         """
-        current_path = urlparse(url).path
-        return (current_path.startswith(self.original_url_path) and
-                (not self.subdir or current_path.startswith(self.subdir)))
+        parsed_url = urlparse(url)
+        current_path = parsed_url.path
+
+        # Check if the URL is within the original domain and path
+        if not current_path.startswith(self.original_url_path):
+            return False
+
+        # If subdir is specified, check if the URL is within the subdirectory
+        if self.subdir:
+            subdir_path = os.path.join(self.original_url_path, self.subdir.strip('/'))
+            if not current_path.startswith(subdir_path):
+                return False
+
+        return True
 
     def _handle_404(self, response: Response):
         """
@@ -304,7 +315,7 @@ class WebsiteSpider(scrapy.Spider):
         for i in range(len(path_parts), 0, -1):
             new_path = '/'.join(path_parts[:i])
             new_url = parsed_url._replace(path=new_path).geturl()
-            if new_url != response.url and new_url not in self.visited_urls:
+            if new_url != response.url and new_url not in self.visited_urls and self._is_valid_url(new_url):
                 self.visited_urls.add(new_url)
                 yield scrapy.Request(new_url, callback=self.parse, dont_filter=True,
                                      meta={'depth': response.meta.get('depth', 0) + 1})
@@ -470,11 +481,9 @@ class WebsiteSpider(scrapy.Spider):
         domain = urlparse(response.url).netloc
         for href in response.css('a::attr(href)').getall():
             url = urljoin(response.url, href)
-            parsed_url = urlparse(url)
-            if parsed_url.netloc == domain and parsed_url.path.startswith(self.original_url_path):
-                if url not in self.visited_urls:
-                    self.visited_urls.add(url)
-                    yield scrapy.Request(url, callback=self.parse)
+            if self._is_valid_url(url) and url not in self.visited_urls:
+                self.visited_urls.add(url)
+                yield scrapy.Request(url, callback=self.parse)
 
     def closed(self, reason):
         """
