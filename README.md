@@ -73,7 +73,8 @@ The script creates a directory structure mirroring the scraped website(s) and sa
 ## Limitations/Issues
 - The data download limit feature is in beta and may not work as expected in all scenarios.
 - The script does not handle JavaScript-rendered content, as it relies on Scrapy's static HTML parsing.
-- The combined feature just ouputs the same information over and over.
+- The combined feature works.  However, some websites (like https://supabase.com/docs/reference/javascript/installing) have a directory structure that actually all points to the same document.  This causes the script to download the same document multiple times.  This is a limitation of the script and not a bug.
+- The output contains some weird formatting errors like _10.
 
 ## Contributing
 
