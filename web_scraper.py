@@ -11,6 +11,7 @@ Main features:
 4. Creates a table of contents for the scraped content
 5. Adds the output directory to .gitignore in the Git root directory
 6. Implements secure coding practices including input validation and sanitization
+7. Option to combine markdown files per directory during scraping (new feature)
 
 Usage:
     python web_scraper.py -u <url> -o <output_dir> [options]
@@ -26,6 +27,7 @@ Options:
     -s, --subdir SUBDIR       Limit scraping to a specific subdirectory
     --data-download-limit LIMIT Limit the amount of data to download (e.g., 4GB)
                               Note: This is a beta feature and may not work as expected
+    --combine-markdown        Combine markdown files per directory during scraping
 
 Dependencies:
     - scrapy
@@ -40,7 +42,7 @@ import hashlib
 import logging
 import argparse
 import subprocess
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 from urllib.parse import urlparse, urljoin
 
 import scrapy
@@ -165,7 +167,8 @@ class WebsiteSpider(scrapy.Spider):
     name = 'website_spider'
 
     def __init__(self, start_urls: List[str], output_dir: str, ignore_links: bool = False,
-                 subdir: Optional[str] = None, data_limit: Optional[int] = None, *args, **kwargs):
+                 subdir: Optional[str] = None, data_limit: Optional[int] = None,
+                 combine_markdown: bool = False, *args, **kwargs):
         super(WebsiteSpider, self).__init__(*args, **kwargs)
         self.start_urls = start_urls
         self.allowed_domains = [urlparse(url).netloc for url in start_urls]
@@ -177,6 +180,8 @@ class WebsiteSpider(scrapy.Spider):
         self.original_url_path = urlparse(start_urls[0]).path
         self.data_limit = data_limit
         self.total_data_downloaded = 0
+        self.combine_markdown = combine_markdown
+        self.combined_content: Dict[str, str] = {}
 
     def parse(self, response):
         if self.data_limit and self.total_data_downloaded >= self.data_limit:
@@ -191,7 +196,11 @@ class WebsiteSpider(scrapy.Spider):
 
             markdown_content = self.extract_and_convert_content(response)
             file_path = self.create_file_path(response.url)
-            self.save_markdown_file(file_path, markdown_content)
+            
+            if self.combine_markdown:
+                self.add_to_combined_content(file_path, markdown_content)
+            else:
+                self.save_markdown_file(file_path, markdown_content)
 
             title = self.extract_title(response)
             self.update_sitemap(response.url, title, file_path)
@@ -231,6 +240,13 @@ class WebsiteSpider(scrapy.Spider):
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
 
+    def add_to_combined_content(self, file_path: str, content: str) -> None:
+        """Add content to the combined markdown for the directory."""
+        directory = os.path.dirname(file_path)
+        if directory not in self.combined_content:
+            self.combined_content[directory] = ""
+        self.combined_content[directory] += f"\n\n# {os.path.basename(file_path)}\n\n{content}"
+
     def extract_title(self, response) -> str:
         """Extract the title from the page."""
         return response.css('title::text').get() or os.path.basename(response.url)
@@ -251,7 +267,18 @@ class WebsiteSpider(scrapy.Spider):
                 yield scrapy.Request(url, callback=self.parse)
 
     def closed(self, reason):
+        if self.combine_markdown:
+            self.save_combined_markdown_files()
         self.create_table_of_contents()
+
+    def save_combined_markdown_files(self) -> None:
+        """Save the combined markdown content for each directory."""
+        for directory, content in self.combined_content.items():
+            combined_file_path = os.path.join(directory, 'combined.md')
+            os.makedirs(os.path.dirname(combined_file_path), exist_ok=True)
+            with open(combined_file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            self.logger.info(f"Saved combined markdown file: {combined_file_path}")
 
     def create_table_of_contents(self) -> None:
         """Create a table of contents for the scraped content."""
@@ -310,6 +337,7 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity')
     parser.add_argument('-s', '--subdir', help='Limit scraping to a specific subdirectory')
     parser.add_argument('--data-download-limit', help='Limit the amount of data to download (e.g., 4GB). Note: This is a beta feature.')
+    parser.add_argument('--combine-markdown', action='store_true', help='Combine markdown files per directory during scraping')
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -343,7 +371,7 @@ def main():
     })
 
     process.crawl(WebsiteSpider, start_urls=start_urls, output_dir=output_dir, ignore_links=args.ignore_links,
-                  subdir=args.subdir, data_limit=data_limit)
+                  subdir=args.subdir, data_limit=data_limit, combine_markdown=args.combine_markdown)
     process.start()
 
 
