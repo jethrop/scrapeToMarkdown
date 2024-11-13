@@ -1,6 +1,6 @@
 # Web Scraper to Markdown
 
-This Python script is designed to scrape websites and convert their content to Markdown format. It uses Scrapy for web crawling and html2text for HTML to Markdown conversion.  This is primarily for documentation sites so you can feed docs directly to an llm.
+This Python script is designed to scrape websites and convert their content to Markdown format. It uses Scrapy for web crawling and html2text for HTML to Markdown conversion. The application provides both a command-line interface and a user-friendly GUI. This is primarily for documentation sites so you can feed docs directly to an llm.
 
 ## Features
 
@@ -13,7 +13,8 @@ This Python script is designed to scrape websites and convert their content to M
 7. Option to combine markdown files per directory during scraping
 8. Handles 404 errors by attempting to crawl deeper into the directory structure
 9. Implements rate limiting to prevent overwhelming target websites
-10. Verbose inline documentation for improved code readability and maintainability
+10. Provides both CLI and GUI interfaces for ease of use
+11. Verbose inline documentation for improved code readability and maintainability
 
 ## Requirements
 
@@ -23,6 +24,7 @@ This Python script is designed to scrape websites and convert their content to M
 - validators
 - beautifulsoup4
 - typing
+- nicegui
 
 Install the required packages using:
 
@@ -31,6 +33,30 @@ pip install -r requirements.txt
 ```
 
 ## Usage
+
+### GUI Interface
+
+To launch the graphical user interface:
+
+```
+python gui.py
+```
+
+The GUI provides an intuitive interface with:
+- Text area for entering URLs (one per line)
+- Output directory selection
+- Various options including:
+  - Ignore links toggle
+  - Verbose output toggle
+  - Combine markdown files toggle
+  - Delay between requests
+  - Custom user agent
+  - Subdirectory limitation
+  - Data download limit
+- Real-time status updates
+- Start/Clear buttons
+
+### Command Line Interface
 
 ```
 python web_scraper.py -u <url> -o <output_dir> [options]
@@ -52,27 +78,32 @@ python web_scraper.py -f <url_file> -o <output_dir> [options]
 
 ## Examples
 
-1. Scrape a single URL:
+1. Using the GUI:
+   ```
+   python gui.py
+   ```
+
+2. Scrape a single URL via CLI:
    ```
    python web_scraper.py -u https://example.com -o scraped_content
    ```
 
-2. Scrape multiple URLs from a file:
+3. Scrape multiple URLs from a file:
    ```
    python web_scraper.py -f urls.txt -o scraped_content
    ```
 
-3. Scrape with a 100MB data limit and custom user agent:
+4. Scrape with a 100MB data limit and custom user agent:
    ```
    python web_scraper.py -u https://example.com -o scraped_content --data-download-limit 100MB -a "MyBot/1.0"
    ```
 
-4. Scrape and combine markdown files per directory:
+5. Scrape and combine markdown files per directory:
    ```
    python web_scraper.py -u https://example.com -o scraped_content --combine-markdown
    ```
 
-5. Scrape with a custom delay between requests:
+6. Scrape with a custom delay between requests:
    ```
    python web_scraper.py -u https://example.com -o scraped_content -d 2.0
    ```
@@ -96,6 +127,7 @@ The script creates a directory structure mirroring the scraped website(s) and sa
 - The output may contain some formatting inconsistencies due to the HTML to Markdown conversion process.
 
 ## Recent Changes
+- Added graphical user interface using NiceGUI
 - Added option to combine markdown files per directory during scraping
 - Implemented handling of 404 errors by attempting to crawl deeper into the directory structure
 - Added verbose inline documentation to improve code readability and maintainability
